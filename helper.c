@@ -132,7 +132,7 @@ char *get_file_name(char *path) {
 }
 
 /*
- * Print all the entries of a given directory inode.
+ * Print all the entries of a given directory.
  */
 void print_entries(struct ext2_dir_entry_2 *dir, char *flag) {
     int curr_pos = 0;
