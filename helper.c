@@ -109,6 +109,8 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
         token = strtok(NULL, filter);
     }
 
+    return NULL;
+
 }
 
 /*
