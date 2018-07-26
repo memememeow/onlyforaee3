@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "ext2.h"
+#include "helper.h"
 
 #define SINGLE_INDIRECT 12
 
@@ -72,4 +74,39 @@ unsigned int *get_indirect_block_loc(unsigned char *disk, struct ext2_inode  *in
  */
 struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inode  *inode, int node, int i_block) {
     return (struct ext2_dir_entry_2 *) (disk + EXT2_BLOCK_SIZE * (inode[node].i_block[i_block]));
+}
+
+/*
+ * Return the inode of the root directory.
+ */
+struct ext2_inode *get_root_inode(struct ext2_inode  *inode_table) {
+    return &(inode_table[EXT2_ROOT_INO - 1]);
+}
+
+/*
+ * Trace the given path.
+ */
+struct ext2_inode *trace_path(char *path, unsigned char *disk) {
+    char *filter = "/";
+    unsigned int block_number = 0;
+    struct ext2_dir_entry_2 *dir_entry = NULL;
+    int size = 0;
+
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+
+    // Get the inode of the root
+    struct ext2_inode *root_inode = get_root_inode(inode_table);
+
+    // Get the copy of the path
+    char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
+    strncpy(full_path, path, strlen(path));
+
+    char *token = strtok(full_path, (int) filter);
+    while (token != NULL && (token + 1) != "/0") {
+
+
+        token = strtok(NULL, (int) filter);
+    }
+
 }

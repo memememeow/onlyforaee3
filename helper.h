@@ -11,3 +11,5 @@ unsigned char *get_inode_bitmap_loc(unsigned char *disk, struct ext2_group_desc 
 struct ext2_inode  *get_inode_table_loc(unsigned char *disk, struct ext2_group_desc *gd);
 unsigned int *get_indirect_block_loc(unsigned char *disk, struct ext2_inode  *inode, int node);
 struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inode  *inode, int node, int i_block);
+struct ext2_inode *get_root_inode(struct ext2_inode  *inode_table);
+struct ext2_inode *trace_path(char *path, unsigned char *disk);
