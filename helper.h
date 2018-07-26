@@ -14,3 +14,4 @@ struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inod
 struct ext2_inode *get_root_inode(struct ext2_inode  *inode_table);
 struct ext2_inode *trace_path(char *path, unsigned char *disk);
 char *get_file_name(char *path);
+void print_entries(struct ext2_dir_entry_2 *dir, char *flag);

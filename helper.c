@@ -103,13 +103,12 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     strncpy(full_path, path, strlen(path));
 
     char *token = strtok(full_path, filter);
-    while (token != NULL ) {
+    while (token != NULL) {
+        for (int )
 
 
         token = strtok(NULL, filter);
     }
-
-    return NULL;
 
 }
 
@@ -135,12 +134,39 @@ char *get_file_name(char *path) {
 /*
  * Print all the entries of a given directory inode.
  */
-void print_entries(struct ext2_inode *dir) {
+void print_entries(struct ext2_dir_entry_2 *dir, char *flag) {
+    int curr_pos = 0;
 
+    if (flag == NULL) { // Not print . and ..
+        while (curr_pos < EXT2_BLOCK_SIZE) { // Total size of the entries in a block cannot exceed a block size
+            char *print_name = malloc(sizeof(char) * dir->name_len + 1);
+            for (int u = 0; u < dir->name_len; u++) {
+                print_name[u] = dir->name[u];
+            }
+            print_name[dir->name_len] = '\0';
+            if (strcmp(print_name, ".") != 0 || strcmp(print_name, "..") != 0) {
+                printf("%s\n", print_name);
+            }
+            free(print_name);
 
-    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
-        if (i != SINGLE_INDIRECT && dir->i_block[i]) { // There is a direct block pointer
+            // Move to the next entry
+            curr_pos = curr_pos + dir->rec_len;
+            dir = (void*) dir + dir->rec_len;
+        }
 
-        } else if (i == SINGLE_INDIRECT && dir->)
+    } else if (flag == "-a") {
+        while (curr_pos < EXT2_BLOCK_SIZE) { // Total size of the entries in a block cannot exceed a block size
+            char *print_name = malloc(sizeof(char) * dir->name_len + 1);
+            for (int u = 0; u < dir->name_len; u++) {
+                print_name[u] = dir->name[u];
+            }
+            print_name[dir->name_len] = '\0';
+            printf("%s\n", print_name);
+            free(print_name);
+
+            // Move to the next entry
+            curr_pos = curr_pos + dir->rec_len;
+            dir = (void*) dir + dir->rec_len;
+        }
     }
 }

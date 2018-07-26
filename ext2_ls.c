@@ -43,14 +43,14 @@ int main(int argc, char **argv) {
             if (type == 'f') { // Only print file or link name
                 printf("%s\n", get_file_name(argv[2]));
             } else if (type == 'd') { // Print all entries in the directory
-                print_entries(disk, dir, NULL);
+                print_entries(dir, NULL);
             }
 
         } else { // "-a" case
             if (type == 'f') { // Refrain from printing the . and ..
                 printf("%s\n", get_file_name(argv[2]));
             } else if (type == 'd') { // Print all entries in the directory as well as . and ..
-                print_entries(disk, dir, argv[3]);
+                print_entries(dir, argv[3]);
             }
         }
 
