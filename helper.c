@@ -84,7 +84,7 @@ struct ext2_inode *get_root_inode(struct ext2_inode  *inode_table) {
 }
 
 /*
- * Trace the given path.
+ * Trace the given path. Return the inode of the given path.
  */
 struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *filter = "/";
@@ -102,11 +102,30 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
     strncpy(full_path, path, strlen(path));
 
-    char *token = strtok(full_path, (int) filter);
-    while (token != NULL && (token + 1) != "/0") {
+    char *token = strtok(full_path, filter);
+    while (token != NULL ) {
 
 
-        token = strtok(NULL, (int) filter);
+        token = strtok(NULL, filter);
     }
 
+}
+
+/*
+ * Return the file name of the given valid path.
+ */
+char *get_file_name(char *path) {
+    char *filter = "/";
+    char *file_name = malloc(sizeof(char) * (strlen(path) + 1));;
+
+    char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
+    strncpy(full_path, path, strlen(path));
+
+    char *token = strtok(full_path, filter);
+    while (token != NULL) {
+        strncpy(file_name, token, strlen(token));
+        token = strtok(NULL, filter);
+    }
+
+    return file_name;
 }
