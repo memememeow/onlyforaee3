@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <errno.h>
 #include "ext2.h"
 #include "helper.h"
 
@@ -23,11 +24,39 @@ int main(int argc, char **argv) {
     // Map disk image file into memory
     disk = get_disk_loc(argv[1]);
 
-    if (argc == 3) {
+    // Get the inode of the given path
+    struct ext2_inode *path_inode = trace_path(argv[2], disk);
 
-    } else {
+    char type = '\0';
+    if (path_inode != NULL) { // the given path exists
+        // Check the type of inode
+        if (path_inode->i_mode & EXT2_S_IFREG || path_inode->i_mode & EXT2_S_IFLNK) { // File or link
+            type = 'f';
+        } else if (path_inode->.i_mode & EXT2_S_IFDIR) { // Directory
+            type = 'd';
+        }
 
+        if (argc == 3) {
+            if (type == 'f') { // Only print file or link name
+                printf("%s\n", get_file_name(argv[2]));
+            } else if (type == 'd') {
+
+            }
+
+        } else { // "-a" case
+            if (type == 'f') { // Refrain from printing the . and ..
+                printf("%s\n", get_file_name(argv[2]));
+            } else if (type == 'd') {
+                printf(".\n..\n");
+            }
+        }
+
+    } else { // given path does not exist
+        printf("No such file or directory.\n");
+        return ENOENT;
     }
+
+    return 0;
 
 
 }
