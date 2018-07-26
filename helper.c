@@ -65,15 +65,15 @@ struct ext2_inode  *get_inode_table_loc(unsigned char *disk, struct ext2_group_d
 /*
  * Return the indirect block location.
  */
-unsigned int *get_indirect_block_loc(unsigned char *disk, struct ext2_inode  *inode, int node) {
-    return (unsigned int *) (disk + EXT2_BLOCK_SIZE * inode[node].i_block[SINGLE_INDIRECT]);
+unsigned int *get_indirect_block_loc(unsigned char *disk, struct ext2_inode  *inode) {
+    return (unsigned int *) (disk + EXT2_BLOCK_SIZE * inode->i_block[SINGLE_INDIRECT]);
 }
 
 /*
  * Return the directory location.
  */
-struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inode  *inode, int node, int i_block) {
-    return (struct ext2_dir_entry_2 *) (disk + EXT2_BLOCK_SIZE * (inode[node].i_block[i_block]));
+struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inode  *inode, int i_block) {
+    return (struct ext2_dir_entry_2 *) (disk + EXT2_BLOCK_SIZE * (inode->i_block[i_block]));
 }
 
 /*
@@ -130,4 +130,17 @@ char *get_file_name(char *path) {
     }
 
     return file_name;
+}
+
+/*
+ * Print all the entries of a given directory inode.
+ */
+void print_entries(struct ext2_inode *dir) {
+
+
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+        if (i != SINGLE_INDIRECT && dir->i_block[i]) { // There is a direct block pointer
+
+        } else if (i == SINGLE_INDIRECT && dir->)
+    }
 }
