@@ -27,6 +27,9 @@ int main(int argc, char **argv) {
     // Get the inode of the given path
     struct ext2_inode *path_inode = trace_path(argv[2], disk);
 
+    // How to get a ext2_dir_entry_2 * !!!!!!!!!!!!!!!!!!!!!!
+    struct ext2_dir_entry_2 *dir = NULL;
+
     char type = '\0';
     if (path_inode != NULL) { // the given path exists
         // Check the type of inode
@@ -39,19 +42,19 @@ int main(int argc, char **argv) {
         if (argc == 3) {
             if (type == 'f') { // Only print file or link name
                 printf("%s\n", get_file_name(argv[2]));
-            } else if (type == 'd') {
-
+            } else if (type == 'd') { // Print all entries in the directory
+                print_entries(disk, dir, NULL);
             }
 
         } else { // "-a" case
             if (type == 'f') { // Refrain from printing the . and ..
                 printf("%s\n", get_file_name(argv[2]));
-            } else if (type == 'd') {
-                printf(".\n..\n");
+            } else if (type == 'd') { // Print all entries in the directory as well as . and ..
+                print_entries(disk, dir, argv[3]);
             }
         }
 
-    } else { // given path does not exist
+    } else { // the given path does not exist
         printf("No such file or directory.\n");
         return ENOENT;
     }
