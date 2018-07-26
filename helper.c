@@ -105,7 +105,7 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *token = strtok(full_path, filter);
     while (token != NULL) {
         for (int i = 0; i < SINGLE_INDIRECT; i++) { // loop through the direct block pointer
-
+            // TO BE CONTINUE ...
         }
 
         token = strtok(NULL, filter);
