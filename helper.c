@@ -104,11 +104,14 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
 
     char *token = strtok(full_path, filter);
     while (token != NULL) {
-        for (int )
+        for (int i = 0; i < SINGLE_INDIRECT; i++) { // loop through the direct block pointer
 
+        }
 
         token = strtok(NULL, filter);
     }
+
+    return NULL;
 
 }
 
@@ -154,7 +157,7 @@ void print_entries(struct ext2_dir_entry_2 *dir, char *flag) {
             dir = (void*) dir + dir->rec_len;
         }
 
-    } else if (flag == "-a") {
+    } else if (strcmp(flag, "-a") == 0) {
         while (curr_pos < EXT2_BLOCK_SIZE) { // Total size of the entries in a block cannot exceed a block size
             char *print_name = malloc(sizeof(char) * dir->name_len + 1);
             for (int u = 0; u < dir->name_len; u++) {
