@@ -171,6 +171,7 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     strncpy(full_path, path, strlen(path) + 1);
 
     char *token = strtok(full_path, filter);
+
     while (token != NULL) {
         if (current_inode->i_mode & EXT2_S_IFDIR) {
             current_inode = get_entry_with_name(disk, token, current_inode);
@@ -179,13 +180,15 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
         token = strtok(NULL, filter);
 
         // handle case: in the middle of the path is not a directory
-        if (token != NULL && !(current_inode->i_mode & EXT2_S_IFDIR)) {
+        if (current_inode != NULL && token != NULL
+            && !(current_inode->i_mode & EXT2_S_IFDIR)) {
             return NULL;
         }
     }
 
     // handle the case like: /a/bb/ccc/, ccc need to be a directory
-    if ((path[strlen(path) - 1] == '/')
+    if (current_inode != NULL
+        && (path[strlen(path) - 1] == '/')
         && !(current_inode->i_mode & EXT2_S_IFDIR)) {
         return NULL;
     }
@@ -199,6 +202,7 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
  */
 struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_inode *parent) {
     struct ext2_inode *target = NULL;
+
     // Search through the direct blocks
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (parent->i_block[i]) {
@@ -235,7 +239,7 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
         entry_name[dir->name_len] = '\0';
 
         if (strcmp(entry_name, name) == 0) {
-            target = &inode_table[dir->inode - 1];
+            target = &(inode_table[dir->inode - 1]);
         }
 
         free(entry_name);
@@ -279,6 +283,7 @@ void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag) {
     while (curr_pos < EXT2_BLOCK_SIZE) {
         char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
 
+        // random problem here, may have garbage name
         for (int u = 0; u < dir->name_len; u++) {
             entry_name[u] = dir->name[u];
         }
