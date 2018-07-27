@@ -173,7 +173,7 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *token = strtok(full_path, filter);
 
     while (token != NULL) {
-        if (current_inode->i_mode & EXT2_S_IFDIR) {
+        if (current_inode != NULL && (current_inode->i_mode & EXT2_S_IFDIR)) {
             current_inode = get_entry_with_name(disk, token, current_inode);
         }
 
