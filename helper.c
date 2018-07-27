@@ -284,12 +284,12 @@ void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag) {
         }
         entry_name[dir->name_len] = '\0';
 
-        if (strcmp(flag, "-a") == 0) {
-            printf("%s\n", entry_name);
-        } else { // Refrain from printing the . and ..
-            if (strcmp(entry_name, ".") != 0 || strcmp(entry_name, "..") != 0) {
+        if (flag == NULL) { // Refrain from printing the . and ..
+            if (strcmp(entry_name, ".") != 0 && strcmp(entry_name, "..") != 0) {
                 printf("%s\n", entry_name);
             }
+        } else if (strcmp(flag, "-a") == 0) {
+            printf("%s\n", entry_name);
         }
 
         free(entry_name);
