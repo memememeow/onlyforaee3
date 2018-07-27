@@ -101,9 +101,9 @@ void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag);
 /*
  * Create a new directory entry for the new enter file, link or directory.
  */
-struct ext2_dir_entry_2 *setup_entry(int new_inode, char *f_name, char *type);
+struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char type);
 
 /*
  * Add new entry into the directory.
  */
-int add_new_entry(struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);
+int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);

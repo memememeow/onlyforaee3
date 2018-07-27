@@ -299,60 +299,62 @@ void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag) {
 /*
  * Create a new directory entry for the new enter file, link or directory.
  */
-struct ext2_dir_entry_2 *setup_entry(int new_inode, char *f_name, char *type) {
-  struct ext2_dir_entry_2 *new_entry = NULL;
-  new_entry->inode = new_inode;
-  new_entry->name_len = strlen(name);
-  memcpy(new_entry->name, f_name, new_entry.name_len);
-  new_entry->rec_len = sizeof(struct ext2_dir_entry_2 *) + sizeof(char) * new_entry->name_len;
+struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char type) {
+    struct ext2_dir_entry_2 *new_entry = malloc(sizeof(struct ext2_dir_entry_2));
+    new_entry->inode = new_inode;
+    new_entry->name_len = (unsigned char) strlen(f_name);
+    memcpy(new_entry->name, f_name, new_entry->name_len);
+    new_entry->rec_len = sizeof(struct ext2_dir_entry_2 *) + sizeof(char) * new_entry->name_len;
 
-  if (type == 'd') {
-    new_entry->file_type = EXT2_FT_DIR;
-  } else if (type == 'f') {
-    new_entry->file_type = EXT2_FT_REG_FILE;
-  } else if (type == 'l') {
-    new_entry->file_type = EXT2_FT_SYMLINK;
-  } else {
-    new_entry->file_type = EXT2_FT_UNKNOWN;
-  }
+    if (type == 'd') {
+        new_entry->file_type = EXT2_FT_DIR;
+    } else if (type == 'f') {
+        new_entry->file_type = EXT2_FT_REG_FILE;
+    } else if (type == 'l') {
+        new_entry->file_type = EXT2_FT_SYMLINK;
+    } else {
+        new_entry->file_type = EXT2_FT_UNKNOWN;
+    }
 
-  // Make entry length power of 4
-  while (new_entry->rec_len % 4 != 0) {
-    new_entry->rec_len ++;
-  }
+    // Make entry length power of 4
+    while (new_entry->rec_len % 4 != 0) {
+        new_entry->rec_len ++;
+    }
+
+    return new_entry;
 }
 
 /*
  * Add new entry into the directory.
  */
-int add_new_entry(struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry) {
-  // Recalls that there are 12 direct blocks.
-  int k;
-  for (k = 0; k < 12; k++) {
-    // If the block exists i.e. not 0.
-    block_num = inode[i].i_block[k];
-    struct ext2_dir_entry_2 *dir = (struct ext2_dir_entry_2 *)(disk + EXT2_BLOCK_SIZE * block_num);
-    int curr_pos = 0;
+int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry) {
+    // Recalls that there are 12 direct blocks.
+    for (int k = 0; k < 12; k++) {
+        // If the block exists i.e. not 0.
+        int block_num = dir_inode->i_block[k];
+        struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
+        int curr_pos = 0;
 
-    /* Total size of the directories in a block cannot exceed a block size */
-    while (curr_pos < EXT2_BLOCK_SIZE) {
-      if ((curr_pos + dir->rec_len) == EXT2_BLOCK_SIZE) { // last block
-        int true_len = sizeof(struct ext2_dir_entry_2 *) + sizeof(char) * new_entry->name_len;
-        if ((dir->rec_len - true_len) >= new_entry->rec_len) {
-          dir->rec_len = true_len;
-          dir = (void*) dir + dir->rec_len;
+        /* Total size of the directories in a block cannot exceed a block size */
+        while (curr_pos < EXT2_BLOCK_SIZE) {
+            if ((curr_pos + dir->rec_len) == EXT2_BLOCK_SIZE) { // last block
+                int true_len = sizeof(struct ext2_dir_entry_2 *) + sizeof(char) * new_entry->name_len;
+                if ((dir->rec_len - true_len) >= new_entry->rec_len) {
+                    dir->rec_len = (unsigned short) true_len;
+                    dir = (void *) dir + dir->rec_len;
 
-          dir->inode = new_entry->inode;
-          dir->name_len = new_entry->name_len;
-          dir->file_type = new_entry->file_type;
-          dir->rec_len = EXT2_BLOCK_SIZE - curr_pos;
-          return 0;
+                    dir->inode = new_entry->inode;
+                    dir->name_len = new_entry->name_len;
+                    dir->file_type = new_entry->file_type;
+                    dir->rec_len = (unsigned short) (EXT2_BLOCK_SIZE - curr_pos);
+                    return 0;
+                }
+            }
+            // Moving to the next directory
+            curr_pos = curr_pos + dir->rec_len;
+            dir = (void *) dir + dir->rec_len;
         }
-      }
-      // Moving to the next directory
-      curr_pos = curr_pos + dir->rec_len;
-      dir = (void*) dir + dir->rec_len;
-      }
     }
-  }
+
+    return 0;
 }
