@@ -31,7 +31,7 @@ unsigned char *get_disk_loc(char *disk_name) {
  * Return the super block location.
  */
 struct ext2_super_block *get_superblock_loc(unsigned char *disk) {
-    return (struct ext2_super_block *)(disk + 1024);
+    return (struct ext2_super_block *)(disk + EXT2_BLOCK_SIZE);
 }
 
 /*
@@ -59,7 +59,7 @@ unsigned char *get_inode_bitmap_loc(unsigned char *disk, struct ext2_group_desc 
  * Return the inode table location.
  */
 struct ext2_inode  *get_inode_table_loc(unsigned char *disk, struct ext2_group_desc *gd) {
-    return (struct ext2_inode *) (disk + EXT2_BLOCK_SIZE * gd->bg_inode_table);
+    return (struct ext2_inode *)(disk + EXT2_BLOCK_SIZE * gd->bg_inode_table);
 }
 
 /*
@@ -72,8 +72,8 @@ unsigned int *get_indirect_block_loc(unsigned char *disk, struct ext2_inode  *in
 /*
  * Return the directory location.
  */
-struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inode  *inode, int i_block) {
-    return (struct ext2_dir_entry_2 *) (disk + EXT2_BLOCK_SIZE * (inode->i_block[i_block]));
+struct ext2_dir_entry_2 *get_dir_entry(unsigned char *disk, int block_num) {
+    return (struct ext2_dir_entry_2 *) (disk + EXT2_BLOCK_SIZE * block_num);
 }
 
 /*
@@ -81,38 +81,6 @@ struct ext2_dir_entry_2 *get_directory_loc(unsigned char *disk, struct ext2_inod
  */
 struct ext2_inode *get_root_inode(struct ext2_inode  *inode_table) {
     return &(inode_table[EXT2_ROOT_INO - 1]);
-}
-
-/*
- * Trace the given path. Return the inode of the given path.
- */
-struct ext2_inode *trace_path(char *path, unsigned char *disk) {
-    char *filter = "/";
-    unsigned int block_number = 0;
-    struct ext2_dir_entry_2 *dir_entry = NULL;
-    int size = 0;
-
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
-
-    // Get the inode of the root
-    struct ext2_inode *root_inode = get_root_inode(inode_table);
-
-    // Get the copy of the path
-    char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
-    strncpy(full_path, path, strlen(path));
-
-    char *token = strtok(full_path, filter);
-    while (token != NULL) {
-        for (int i = 0; i < SINGLE_INDIRECT; i++) { // loop through the direct block pointer
-            // TO BE CONTINUE ...
-        }
-
-        token = strtok(NULL, filter);
-    }
-
-    return NULL;
-
 }
 
 /*
@@ -135,41 +103,175 @@ char *get_file_name(char *path) {
 }
 
 /*
- * Print all the entries of a given directory.
+ * Trace the given path. Return the inode of the given path.
  */
-void print_entries(struct ext2_dir_entry_2 *dir, char *flag) {
-    int curr_pos = 0;
+struct ext2_inode *trace_path(char *path, unsigned char *disk) {
+    char *filter = "/";
+    unsigned int block_number = 0;
+    struct ext2_dir_entry_2 *dir_entry = NULL;
+    int size = 0;
 
-    if (flag == NULL) { // Not print . and ..
-        while (curr_pos < EXT2_BLOCK_SIZE) { // Total size of the entries in a block cannot exceed a block size
-            char *print_name = malloc(sizeof(char) * dir->name_len + 1);
-            for (int u = 0; u < dir->name_len; u++) {
-                print_name[u] = dir->name[u];
-            }
-            print_name[dir->name_len] = '\0';
-            if (strcmp(print_name, ".") != 0 || strcmp(print_name, "..") != 0) {
-                printf("%s\n", print_name);
-            }
-            free(print_name);
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk, gd);
 
-            // Move to the next entry
-            curr_pos = curr_pos + dir->rec_len;
-            dir = (void*) dir + dir->rec_len;
+    // Get the inode of the root
+    struct ext2_inode *current_inode = get_root_inode(inode_table);
+
+    // Get the copy of the path
+    char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
+    strncpy(full_path, path, strlen(path));
+
+    char *token = strtok(full_path, filter);
+    while (token != NULL) {
+        for (int i = 0; i < SINGLE_INDIRECT; i++) { // loop through the direct block pointer
+            // current_inode is a directory and there is data in its block
+            if ((current_inode->i_mode & EXT2_S_IFDIR) && (current_inode->i_block[i])) {
+
+            }
+
+            // Get the entries of the current directory, if exist
+            struct ext2_dir_entry_2 *entry = &(current_inode[i]);
+
         }
 
-    } else if (strcmp(flag, "-a") == 0) {
-        while (curr_pos < EXT2_BLOCK_SIZE) { // Total size of the entries in a block cannot exceed a block size
-            char *print_name = malloc(sizeof(char) * dir->name_len + 1);
-            for (int u = 0; u < dir->name_len; u++) {
-                print_name[u] = dir->name[u];
-            }
-            print_name[dir->name_len] = '\0';
-            printf("%s\n", print_name);
-            free(print_name);
+        token = strtok(NULL, filter);
+    }
 
-            // Move to the next entry
-            curr_pos = curr_pos + dir->rec_len;
-            dir = (void*) dir + dir->rec_len;
+    return NULL;
+
+}
+
+/*
+ * Print all the entries of a given directory in direct blocks.
+ */
+void print_entries_direct(unsigned char *disk, struct ext2_inode *directory, char *flag) {
+    // direct block entry
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
+        if (directory->i_block[i]) { // find the correspond block on the disk
+            struct ext2_dir_entry_2 *dir = get_dir_entry(disk, directory->i_block[i]);
+
+            int curr_pos = 0; // used to keep track of the dir entry in each block
+            while (curr_pos < EXT2_BLOCK_SIZE) {
+                char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
+
+                for (int u = 0; u < dir->name_len; u++) {
+                    entry_name[u] = dir->name[u];
+                }
+                entry_name[dir->name_len] = '\0';
+
+                if (strcmp(flag, "-a") == 0) {
+                    printf("%s\n", entry_name);
+                } else { // Refrain from printing the . and ..
+                    if (strcmp(entry_name, ".") != 0 || strcmp(entry_name, "..") != 0) {
+                        printf("%s\n", entry_name);
+                    }
+                }
+
+                free(entry_name);
+
+                /* Moving to the next directory */
+                curr_pos = curr_pos + dir->rec_len;
+                dir = (void*) dir + dir->rec_len;
+            }
         }
     }
+}
+
+/*
+ * Print all the entries of a given directory.
+ */
+void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag) {
+    // Print all the entries of a given directory in direct blocks.
+    print_entries_direct(disk, directory, flag);
+
+    // Print all the entries of given directory in indirect blocks.
+    if (directory->i_block[SINGLE_INDIRECT]) {
+        unsigned int *indirect = get_indirect_block_loc(disk, directory);
+
+        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
+            if (indirect[i]) {
+                struct ext2_dir_entry_2 *dir = get_dir_entry(disk, indirect[i]);
+
+                int curr_pos = 0; // used to keep track of the dir entry in each block
+                while (curr_pos < EXT2_BLOCK_SIZE) {
+                    char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
+
+                    for (int u = 0; u < dir->name_len; u++) {
+                        entry_name[u] = dir->name[u];
+                    }
+                    entry_name[dir->name_len] = '\0';
+
+                    if (strcmp(flag, "-a") == 0) {
+                        printf("%s\n", entry_name);
+                    } else { // Refrain from printing the . and ..
+                        if (strcmp(entry_name, ".") != 0 || strcmp(entry_name, "..") != 0) {
+                            printf("%s\n", entry_name);
+                        }
+                    }
+
+                    free(entry_name);
+
+                    /* Moving to the next directory */
+                    curr_pos = curr_pos + dir->rec_len;
+                    dir = (void*) dir + dir->rec_len;
+                }
+            }
+        }
+    }
+}
+
+
+/*
+ * Return an entry (directory) with particular name in the given directory
+ */
+struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_dir_entry_2 *parent) {
+    // get the inode of the parent directory
+    // loop the i_blocks[15] of the parent directory inode:
+    // i_block[i] 1. has data 2. while loop the block to get the content
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode *parent_dir_inode = &(inode_table[parent->inode]);
+    struct ext2_inode *target_entry = NULL;
+
+    // case1: direct block pointer
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
+
+        if (parent_dir_inode->i_block[i]) { // check block number != 0
+            struct ext2_dir_entry_2 *dir = get_dir_entry(disk, parent_dir_inode, i);
+
+            int curr_pos = 0;
+
+            while (curr_pos < EXT2_BLOCK_SIZE) {
+//                printf("Inode: %u ", dir->inode);
+//                printf("rec_len: %hu ", dir->rec_len);
+//                printf("name_len: %u ", dir->name_len);
+                char *current_name = malloc(sizeof(char) * dir->name_len + 1);
+                for (int u = 0; u < dir->name_len; u++) {
+                    current_name[u] = dir->name[u];
+                }
+                current_name[dir->name_len] = '\0';
+
+                // check whether this name is wanted
+                if (strcmp(current_name, name) == 0) {
+                    target_entry = dir->
+                }
+
+                printf("name=%s\n", print_name);
+                free(print_name);
+                /* Moving to the next directory */
+                curr_pos = curr_pos + dir->rec_len;
+                dir = (void*) dir + dir->rec_len;
+
+
+                printf("curr_pos: %d\n", curr_pos);
+                //printf("dir->inode: %d\n", dir->inode);
+                //printf("size of struct: %lu\n", sizeof(struct ext2_dir_entry_2));
+                //printf("size of int: %lu, sizeof short: %lu, size of char: %lu", sizeof(unsigned int), sizeof(unsigned short), sizeof(unsigned char));
+            }
+        }
+    }
+
+    // case2: indirect block pointer
 }
