@@ -181,7 +181,7 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     }
 
     // handle the case like: /a/bb/ccc/, ccc need to be a directory
-    if ((full_path[strlen(full_path) - 1] == '/')
+    if ((path[strlen(path) - 1] == '/')
         && !(current_inode->i_mode & EXT2_S_IFDIR)) {
         return NULL;
     }
