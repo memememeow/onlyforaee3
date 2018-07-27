@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
         // Check the type of inode
         if (path_inode->i_mode & EXT2_S_IFREG || path_inode->i_mode & EXT2_S_IFLNK) { // File or link
             type = 'f';
-        } else if (path_inode->.i_mode & EXT2_S_IFDIR) { // Directory
+        } else if (path_inode->i_mode & EXT2_S_IFDIR) { // Directory
             type = 'd';
         }
 
