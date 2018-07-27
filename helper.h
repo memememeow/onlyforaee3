@@ -10,9 +10,13 @@ unsigned char *get_block_bitmap_loc(unsigned char *disk, struct ext2_group_desc 
 unsigned char *get_inode_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd);
 struct ext2_inode *get_inode_table_loc(unsigned char *disk, struct ext2_group_desc *gd);
 unsigned int *get_indirect_block_loc(unsigned char *disk, struct ext2_inode  *inode);
+
 struct ext2_dir_entry_2 *get_dir_entry(unsigned char *disk, int block_num);
 struct ext2_inode *get_root_inode(struct ext2_inode  *inode_table);
 char *get_file_name(char *path);
+
 struct ext2_inode *trace_path(char *path, unsigned char *disk);
+struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_inode *parent);
+
 void print_entries(unsigned char *disk, struct ext2_inode *dir, char *flag);
 void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag);

@@ -144,9 +144,10 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
 }
 
 /*
- * Return an entry (directory) with particular name in the given directory
+ * Return the inode of the directory with particular name
+ * in a given parent directory
  */
-struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_dir_entry_2 *parent) {
+struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_inode *parent) {
     // get the inode of the parent directory
     // loop the i_blocks[15] of the parent directory inode:
     // i_block[i] 1. has data 2. while loop the block to get the content
