@@ -158,7 +158,7 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
 
     // Search through the indirect blocks if not find the target inode
     if (target == NULL && parent->i_block[SINGLE_INDIRECT]) {
-        target = get_entry_in_block(disk, name, parent->i_block[i]);
+        target = get_entry_in_block(disk, name, parent->i_block[SINGLE_INDIRECT]);
     }
 
     return target;
