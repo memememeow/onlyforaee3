@@ -173,19 +173,15 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
 
     char *token = strtok(full_path, filter);
     while (token != NULL) {
-        for (int i = 0; i < SINGLE_INDIRECT; i++) { // loop through the direct block pointer
-            // current_inode is a directory and there is data in its block
-            if ((current_inode->i_mode & EXT2_S_IFDIR) && (current_inode->i_block[i])) {
-
-            }
-
-            // Get the entries of the current directory, if exist
-            struct ext2_dir_entry_2 *entry = &(current_inode[i]);
-
-        }
+        // check the token of the path one by one
+        // For each token:
+        // 1. check type -> except for the last one, all previous need to be the directory
+        // 2. for directory -> call get_entry_with_name
 
         token = strtok(NULL, filter);
     }
+
+    // return the last token if found
 
     return NULL;
 

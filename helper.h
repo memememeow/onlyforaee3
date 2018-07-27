@@ -64,12 +64,12 @@ char *get_dir_path(char *path);
 /*
  * Return the first inode number that is free.
  */
-int get_free_inode(unsigned char *inode_bitmap);
+int get_free_inode(struct ext2_super_block *sb, unsigned char *inode_bitmap);
 
 /*
  * Return the first block number that is free.
  */
-int get_free_block(unsigned char *block_bitmap);
+int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap);
 
 /*
  * Trace the given path. Return the inode of the given path.

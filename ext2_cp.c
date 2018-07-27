@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <errno.h>
 #include "ext2.h"
 #include "helper.h"
 
@@ -116,10 +117,10 @@ int main (int argc, char **argv) {
   struct ext2_inode *tar_node = i_bitmap[i_num - 1];
 
   // Init the inode
-  tar_node.i_mode = EXT2_FT_REG_FILE;
-  tar_node.i_size = file_size;
-  tar_node.i_links_count = 0; // ??
-  tar_node.i_blocks = 0;
+  tar_node->i_mode = EXT2_FT_REG_FILE;
+  tar_node->i_size = (unsigned int) file_size;
+  tar_node->i_links_count = 0; // ??
+  tar_node->i_blocks = 0;
   // What is i_blocks?
 
   // Change data in superblock and group desciptor
@@ -138,7 +139,7 @@ int main (int argc, char **argv) {
       int b_index = get_free_block(sb, b_bitmap);
       unsigned char *block = disk + b_index * EXT2_BLOCK_SIZE;
       memcpy(block, buf, EXT2_BLOCK_SIZE);
-      tar_node.i_block[iblock_index] = b_index;
+      tar_node->i_block[iblock_index] = (unsigned int) b_index;
       iblock_index ++;
 
     } else { //SINGLE_INDIRECT
