@@ -214,8 +214,8 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
  * Return the inode of a directory/file/link with a particular name if it is in a block,
  * otherwise return NULL.
  */
-struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int inode_num) {
-    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, inode_num);
+struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block_num) {
+    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
     struct ext2_inode *target = NULL;
 
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
