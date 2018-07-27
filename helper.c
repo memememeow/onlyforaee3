@@ -187,7 +187,6 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     }
 
     return current_inode;
-
 }
 
 /*
