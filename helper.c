@@ -155,14 +155,9 @@ int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap) {
  */
 struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *filter = "/";
-    unsigned int block_number = 0;
-    struct ext2_dir_entry_2 *dir_entry = NULL;
-    int size = 0;
 
-    struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
-    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk, gd);
 
     // Get the inode of the root
     struct ext2_inode *current_inode = get_root_inode(inode_table);
@@ -173,17 +168,25 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
 
     char *token = strtok(full_path, filter);
     while (token != NULL) {
-        // check the token of the path one by one
-        // For each token:
-        // 1. check type -> except for the last one, all previous need to be the directory
-        // 2. for directory -> call get_entry_with_name
+        if (current_inode->i_mode & EXT2_S_IFDIR) {
+            current_inode = get_entry_with_name(disk, token, current_inode);
+        }
 
         token = strtok(NULL, filter);
+
+        // handle case: in the middle of the path is not a directory
+        if (token != NULL && !(current_inode->i_mode & EXT2_S_IFDIR)) {
+            return NULL;
+        }
     }
 
-    // return the last token if found
+    // handle the case like: /a/bb/ccc/, ccc need to be a directory
+    if ((full_path[strlen(full_path) - 1] == '/')
+        && !(current_inode->i_mode & EXT2_S_IFDIR)) {
+        return NULL;
+    }
 
-    return NULL;
+    return current_inode;
 
 }
 
