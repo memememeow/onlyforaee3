@@ -13,7 +13,7 @@ ext2_ln: ext2_ln.o
 ext2_rm: ext2_rm.o
 	gcc -Wall -g -o $@ $^
 
-ext2_rm_bonus: ext2ext2_rm_bonus.o
+ext2_rm_bonus: ext2_rm_bonus.o
 	gcc -Wall -g -o $@ $^
 
 %.o : %.c ext2.h helper.h
