@@ -91,7 +91,7 @@ char *get_file_name(char *path) {
     char *file_name = malloc(sizeof(char) * (strlen(path) + 1));;
 
     char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
-    strncpy(full_path, path, strlen(path));
+    strncpy(full_path, path, strlen(path) + 1);
 
     char *token = strtok(full_path, filter);
     while (token != NULL) {
