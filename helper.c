@@ -122,32 +122,36 @@ char *get_dir_path(char *path) {
  * Return the first inode number that is free.
  */
 int get_free_inode(struct ext2_super_block *sb, unsigned char *inode_bitmap) {
-  // Loop over the inodes that are not reserved
-  for (int i = EXT2_GOOD_OLD_FIRST_INO; i < sb->s_inodes_count; i++) {
-    int bitmap_byte = i / 8;
-    int bit_order = i % 8;
-    if ((inode_bitmap[bitmap_byte] >> bit_order) ^ 1) {
-      // Such bit is 0, which is a free inode
-      inode_bitmap[bitmap_byte] |= 1 << (7 - bit_order);
-      return i + 1;
+    // Loop over the inodes that are not reserved
+    for (int i = EXT2_GOOD_OLD_FIRST_INO; i < sb->s_inodes_count; i++) {
+        int bitmap_byte = i / 8;
+        int bit_order = i % 8;
+        if ((inode_bitmap[bitmap_byte] >> bit_order) ^ 1) {
+            // Such bit is 0, which is a free inode
+            inode_bitmap[bitmap_byte] |= 1 << (7 - bit_order);
+            return i + 1;
+        }
     }
-  }
+
+    return -1;
 }
 
 /*
  * Return the first block number that is free.
  */
 int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap) {
-  // Loop over the inodes that are not reserved
-  for (int i = 0; i < sb->s_blocks_count; i++) {
-    int bitmap_byte = i / 8;
-    int bit_order = i % 8;
-    if ((block_bitmap[bitmap_byte] >> bit_order) ^ 1) {
-      // Such bit is 0, which is a free block
-      block_bitmap[bitmap_byte] |= 1 << (7 - bit_order);
-      return i;
+    // Loop over the inodes that are not reserved
+    for (int i = 0; i < sb->s_blocks_count; i++) {
+        int bitmap_byte = i / 8;
+        int bit_order = i % 8;
+        if ((block_bitmap[bitmap_byte] >> bit_order) ^ 1) {
+            // Such bit is 0, which is a free block
+            block_bitmap[bitmap_byte] |= 1 << (7 - bit_order);
+            return i;
+        }
     }
-  }
+
+    return -1;
 }
 
 /*
