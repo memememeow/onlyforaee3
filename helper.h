@@ -1,6 +1,3 @@
-#ifndef __HELPER_H__
-#define __HELPER_H__
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -110,5 +107,3 @@ struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char 
  * Add new entry into the directory.
  */
 int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);
-
-#endif
