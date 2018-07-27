@@ -95,7 +95,7 @@ char *get_file_name(char *path) {
 
     char *token = strtok(full_path, filter);
     while (token != NULL) {
-        strncpy(file_name, token, strlen(token));
+        strncpy(file_name, token, strlen(token) + 1);
         token = strtok(NULL, filter);
     }
 
