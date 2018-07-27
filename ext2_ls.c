@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -16,7 +17,7 @@ int main(int argc, char **argv) {
     if (argc != 3 && argc != 4) {
         printf("Usage: ext2_ls <virtual_disk> <absolute_path> <-a>\n");
         exit(1);
-    } else if (argc == 4 && argv[3] != "-a") {
+    } else if (argc == 4 && strcmp(argv[3], "-a") != 0) {
         printf("Usage: ext2_ls <virtual_disk> <absolute_path> <-a>\n");
         exit(1);
     }
