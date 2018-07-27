@@ -235,7 +235,7 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
         entry_name[dir->name_len] = '\0';
 
         if (strcmp(entry_name, name) == 0) {
-            target = &inode_table[dir->inode];
+            target = &inode_table[dir->inode - 1];
         }
 
         free(entry_name);
