@@ -144,21 +144,24 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
 }
 
 /*
- * Return the inode of the directory with a particular name if it is in the given parent directory,
- * otherwise, return NULL.
+ * Return the inode of the directory/file/link with a particular name if it is in the given
+ * parent directory, otherwise, return NULL.
  */
 struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_inode *parent) {
+    struct ext2_inode *target = NULL;
     // Search through the direct blocks
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (parent->i_block[i]) {
-
+            target = get_entry_in_block(disk, name, parent->i_block[i]);
         }
     }
 
-    // Search through the indirect blocks
-    if (parent->i_block[SINGLE_INDIRECT]) {
-
+    // Search through the indirect blocks if not find the target inode
+    if (target == NULL && parent->i_block[SINGLE_INDIRECT]) {
+        target = get_entry_in_block(disk, name, parent->i_block[i]);
     }
+
+    return target;
 }
 
 /*

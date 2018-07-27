@@ -17,6 +17,7 @@ char *get_file_name(char *path);
 
 struct ext2_inode *trace_path(char *path, unsigned char *disk);
 struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct ext2_inode *parent);
+struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block_num);
 
 void print_entries(unsigned char *disk, struct ext2_inode *dir, char *flag);
 void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag);
