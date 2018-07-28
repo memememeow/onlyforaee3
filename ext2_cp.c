@@ -159,6 +159,9 @@ int main (int argc, char **argv) {
     }
   }
 
+  sb -> s_free_blocks_count -= tar_inode->i_blocks / 2;
+  gd -> bg_free_blocks_count -= tar_inode->i_blocks / 2;
+
   // Create a new entry in directory
   struct ext2_dir_entry_2 *new_entry = setup_entry(tar_inode, name_var, type);
   // Init entry, reate new file with name variable

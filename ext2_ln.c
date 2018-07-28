@@ -123,6 +123,10 @@ int main (int argc, char **argv) {
         indirect_index ++;
       }
     }
+
+    sb -> s_free_blocks_count -= tar_inode->i_blocks / 2;
+    gd -> bg_free_blocks_count -= tar_inode->i_blocks / 2;
+
   } else {
     target_inode_num = get_inode_num(target_inode);
     struct ext2_inode *tar_inode = i_bitmap[target_inode_num - 1];
