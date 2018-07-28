@@ -289,7 +289,6 @@ void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag) {
     while (curr_pos < EXT2_BLOCK_SIZE) {
         char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
 
-        // random problem here, may have garbage name
         for (int u = 0; u < dir->name_len; u++) {
             entry_name[u] = dir->name[u];
         }
