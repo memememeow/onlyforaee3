@@ -50,7 +50,6 @@ int main(int argc, char **argv) {
         // set delete time, in order to reuse inode
         path_inode->i_dtime = (unsigned int) time(NULL);
         path_inode->i_size = 0;
-        path_inode->i_links_count = 0;
         path_inode->i_blocks = 0;
     }
 
