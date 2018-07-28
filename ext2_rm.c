@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
         path_inode->i_dtime = (unsigned int) time(NULL);
 
     } else { // links_count == 1, need to remove the actual file/link
-
         // zero the block bitmap
         zero_block_bitmap(disk, path_inode);
         // zero the inode bitmap
