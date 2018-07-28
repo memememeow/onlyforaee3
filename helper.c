@@ -212,7 +212,13 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
 
     // Search through the indirect blocks if not find the target inode
     if (target == NULL && parent->i_block[SINGLE_INDIRECT]) {
-        target = get_entry_in_block(disk, name, parent->i_block[SINGLE_INDIRECT]);
+        unsigned int *indirect = get_indirect_block_loc(disk, parent);
+
+        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
+            if (indirect[i]) {
+                target = get_entry_in_block(disk, name, indirect[i]);
+            }
+        }
     }
 
     return target;
@@ -366,4 +372,58 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2
     }
 
     return 0;
+}
+
+/*
+ * Zero the block bitmap of given inode.
+ */
+void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    unsigned char *bit_map_block = get_block_bitmap_loc(disk, gd);
+
+    // zero through the direct blocks
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
+        zero_one_block(disk, remove->i_block[i]);
+        bit_map_block[remove->i_block[i] - 1] = 0;
+
+    }
+
+    // zero through the indirect blocks
+    if (remove->i_block[SINGLE_INDIRECT]) {
+
+    }
+
+}
+
+/*
+ * Zero one data block.
+ */
+void zero_one_block(unsigned char *disk, int block_num) {
+    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
+    struct ext2_dir_entry_2 *prev_dir = NULL;
+
+    int curr_pos = 0; // used to keep track of the dir entry in each block
+    while (curr_pos < EXT2_BLOCK_SIZE) {
+        prev_dir = dir;
+
+        /* Moving to the next directory */
+        curr_pos = curr_pos + dir->rec_len;
+        dir = (void*) dir + dir->rec_len;
+
+        free(prev_dir);
+    }
+}
+
+/*
+ * Zero the given inode from the inode bitmap
+ */
+void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+
+    unsigned char *inode_map_block = get_inode_bitmap_loc(disk, gd);
+
+    inode_map_block[remove->i_blocks - 1] = 0;
+    sb->s_free_inodes_count++;
+    gd->bg_free_inodes_count++;
 }
