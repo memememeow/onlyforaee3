@@ -263,19 +263,19 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
  */
 void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag) {
     // Print all the entries of a given directory in direct blocks.
-    for (int i = 0; i < SINGLE_INDIRECT; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
         if (directory->i_block[i]) {
             print_one_block_entries(get_dir_entry(disk, directory->i_block[i]), flag);
         }
-    }
 
-    // Print all the entries of given directory in indirect blocks.
-    if (directory->i_block[SINGLE_INDIRECT]) {
-        unsigned int *indirect = get_indirect_block_loc(disk, directory);
+        // Print all the entries of given directory in indirect blocks.
+        if (i == 12) {
+            unsigned int *indirect = get_indirect_block_loc(disk, directory);
 
-        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
-            if (indirect[i]) {
-                print_one_block_entries(get_dir_entry(disk, indirect[i]), flag);
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    print_one_block_entries(get_dir_entry(disk, indirect[j]), flag);
+                }
             }
         }
     }
@@ -383,9 +383,10 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
     // zero through the direct blocks
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
-        zero_one_block(disk, remove->i_block[i]);
-        bit_map_block[remove->i_block[i] - 1] = 0;
-
+        if (bit_map_block[remove->i_block[i] - 1]) { // check bitmap has data
+            zero_one_block(disk, remove->i_block[i]);
+            bit_map_block[remove->i_block[i] - 1] = 0;
+        }
     }
 
     // zero through the indirect blocks
@@ -398,6 +399,8 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
                 bit_map_block[indirect[i] - 1] = 0;
             }
         }
+
+        bit_map_block[remove->i_block[SINGLE_INDIRECT] - 1] = 0;
     }
 }
 
