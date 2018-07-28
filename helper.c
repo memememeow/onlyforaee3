@@ -470,10 +470,65 @@ int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
 }
 
 /*
- * Remove the file name in the given inode.
+ * Remove the file's name of the given path. Assume the given path
+ * is a path to a valid file (or hard link) / link.
  */
 void remove_name(unsigned char *disk, char *path) {
     char *file_name = get_file_name(path);
+    char *parent_path = get_dir_path(path);
+    struct ext2_inode *parent_dir = trace_path(parent_path, disk);
+    int remove = 0;
+
+    // check through the direct blocks
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+        if (parent_dir->i_block[i]) { // check has data, not points to 0
+            remove = remove_name_in_block(disk, file_name, parent_dir->i_block[i]);
+        }
 
 
+        // check through the single indirect block's blocks
+        if (i == SINGLE_INDIRECT && (remove == 0)) {
+            unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
+
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    remove = remove_name_in_block(disk, file_name, indirect[j]);
+                }
+            }
+        }
+    }
+}
+
+/*
+ * Return 1 if successfully remove the directory entry with given name,
+ * otherwise, return 0.
+ */
+int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
+    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
+
+    int curr_pos = 0; // used to keep track of the dir entry in each block
+    while (curr_pos < EXT2_BLOCK_SIZE) {
+        char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
+
+        // random problem here, may have garbage name
+        for (int u = 0; u < dir->name_len; u++) {
+            entry_name[u] = dir->name[u];
+        }
+        entry_name[dir->name_len] = '\0';
+
+        if (strcmp(entry_name, file_name) == 0) { // find the dir entry with given name
+            dir->name = "\0";
+            dir->rec_len = 0;
+
+            return 1;
+        }
+
+        free(entry_name);
+
+        /* Moving to the next directory */
+        curr_pos = curr_pos + dir->rec_len;
+        dir = (void*) dir + dir->rec_len;
+    }
+
+    return 0;
 }
