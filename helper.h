@@ -122,3 +122,8 @@ void zero_one_block(unsigned char *disk, int block_num);
  * Zero the given inode from the inode bitmap
  */
 void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
+
+/*
+ * Get inode number of given inode if exist, otherwise return 0.
+ */
+int get_inode_num(unsigned char *disk, struct ext2_inode *target);

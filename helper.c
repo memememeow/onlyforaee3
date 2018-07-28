@@ -435,7 +435,26 @@ void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
     unsigned char *inode_map_block = get_inode_bitmap_loc(disk, gd);
 
-    inode_map_block[remove->i_blocks - 1] = 0;
+    inode_map_block[get_inode_num(disk, remove)] = 0;
     sb->s_free_inodes_count++;
     gd->bg_free_inodes_count++;
+}
+
+/*
+ * Get inode number of given inode if exist, otherwise return 0.
+ */
+int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+
+    int inode_num = 0;
+
+    for (int i = 0; i < sb->s_inodes_count; i++) {
+        if (inode_table[i].i_size && (&(inode_table[i]) == target)) { // there is data
+            inode_num = i + 1;
+        }
+    }
+
+    return inode_num;
 }
