@@ -114,6 +114,11 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2
 void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
 
 /*
+ * Zero one data block.
+ */
+void zero_one_block(unsigned char *disk, int block_num);
+
+/*
  * Zero the given inode from the inode bitmap
  */
 void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
