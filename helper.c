@@ -418,26 +418,19 @@ void zero_one_block(unsigned char *disk, int block_num) {
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
 
     struct ext2_dir_entry_2 *curr_dir = get_dir_entry(disk, block_num);
-
-
     int curr_pos = curr_dir->rec_len; // used to keep track of the dir entry in each block
-    if (curr_pos < EXT2_BLOCK_SIZE) { // the block has multiple dir entry
-        struct ext2_dir_entry_2 *prev_dir = NULL;
+    struct ext2_dir_entry_2 *prev_dir = NULL;
+
+    while (curr_pos < EXT2_BLOCK_SIZE) {
+        prev_dir = curr_dir;
+
+        /* Moving to the next directory */
         curr_dir = (void*) curr_dir + curr_dir->rec_len;
+        curr_pos = curr_pos + curr_dir->rec_len;
 
-        while (curr_pos < EXT2_BLOCK_SIZE) {
-            prev_dir = curr_dir;
-
-            /* Moving to the next directory */
-            curr_pos = curr_pos + curr_dir->rec_len;
-            curr_dir = (void*) curr_dir + curr_dir->rec_len;
-
-            prev_dir->rec_len = 0;
-        }
-
-    } else { // the block has only one dir entry
-        curr_dir->rec_len = 0;
+        prev_dir->rec_len = 0;
     }
+    curr_dir->rec_len = 0;
 
     sb->s_free_blocks_count++;
     gd->bg_free_blocks_count++;
