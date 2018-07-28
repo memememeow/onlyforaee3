@@ -485,7 +485,6 @@ void remove_name(unsigned char *disk, char *path) {
             remove = remove_name_in_block(disk, file_name, parent_dir->i_block[i]);
         }
 
-
         // check through the single indirect block's blocks
         if (i == SINGLE_INDIRECT && (remove == 0)) {
             unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
