@@ -40,6 +40,8 @@ int main(int argc, char **argv) {
     if (path_inode->i_links_count > 1) {
         // decrement links_count
         path_inode->i_links_count--;
+        // remove current file's name but keep the inode
+        remove_name(disk, argv[2]);
 
     } else { // links_count == 1, need to remove the actual file/link
         // zero the block bitmap
