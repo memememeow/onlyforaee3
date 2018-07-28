@@ -45,17 +45,12 @@ int main(int argc, char **argv) {
 
     } else { // links_count == 1, need to remove the actual file/link
 
-        if (path_inode->i_mode & EXT2_FT_REG_FILE) { // file/hardlink
-            // zero the block bitmap
-            zero_block_bitmap(disk, path_inode);
-            // zero the inode bitmap
-            zero_inode_bitmap(disk, path_inode);
+        // zero the block bitmap
+        zero_block_bitmap(disk, path_inode);
+        // zero the inode bitmap
+        zero_inode_bitmap(disk, path_inode);
 
-            free(path_inode);
-        } else if (path_inode->i_mode & EXT2_FT_SYMLINK) { // softlink
-
-        }
-
+        free(path_inode);
     }
 
     return 0;
