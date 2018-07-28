@@ -435,7 +435,7 @@ void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
     unsigned char *inode_map_block = get_inode_bitmap_loc(disk, gd);
 
-    inode_map_block[get_inode_num(disk, remove)] = 0;
+    inode_map_block[get_inode_num(disk, remove) - 1] = 0;
     sb->s_free_inodes_count++;
     gd->bg_free_inodes_count++;
 }
