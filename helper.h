@@ -127,3 +127,14 @@ void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
  * Get inode number of given inode if exist, otherwise return 0.
  */
 int get_inode_num(unsigned char *disk, struct ext2_inode *target);
+
+/*
+ * Remove the file name in the given inode.
+ */
+void remove_name(unsigned char *disk, char *path);
+
+/*
+ * Return 1 if successfully remove the directory entry with given name,
+ * otherwise, return 0.
+ */
+int remove_name_in_block(unsigned char *disk, char *file_name, int block_num);
