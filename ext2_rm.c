@@ -48,8 +48,6 @@ int main(int argc, char **argv) {
         zero_block_bitmap(disk, path_inode);
         // zero the inode bitmap
         zero_inode_bitmap(disk, path_inode);
-
-        free(path_inode);
     }
 
     return 0;
