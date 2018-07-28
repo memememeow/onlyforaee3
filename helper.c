@@ -390,15 +390,24 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
     // zero through the indirect blocks
     if (remove->i_block[SINGLE_INDIRECT]) {
+        unsigned int *indirect = get_indirect_block_loc(disk, remove);
 
+        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
+            if (indirect[i]) {
+                zero_one_block(disk, indirect[i]);
+                bit_map_block[indirect[i] - 1] = 0;
+            }
+        }
     }
-
 }
 
 /*
  * Zero one data block.
  */
 void zero_one_block(unsigned char *disk, int block_num) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
     struct ext2_dir_entry_2 *prev_dir = NULL;
 
@@ -412,6 +421,9 @@ void zero_one_block(unsigned char *disk, int block_num) {
 
         free(prev_dir);
     }
+
+    sb->s_free_blocks_count++;
+    gd->bg_free_blocks_count++;
 }
 
 /*
