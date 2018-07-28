@@ -107,3 +107,13 @@ struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char 
  * Add new entry into the directory.
  */
 int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);
+
+/*
+ * Zero the block bitmap of given inode.
+ */
+void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
+
+/*
+ * Zero the given inode from the inode bitmap
+ */
+void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
