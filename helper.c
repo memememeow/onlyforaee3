@@ -106,15 +106,15 @@ char *get_file_name(char *path) {
  * Return the path except the final path name. With assumption that the path is
  * a valid path and it is a path of a file.
  *
- * If path is /a/bb/ccc/ this function will return /a/bb/ccc then will still
- * gives an invalid path.
+ * If path is /a/bb/ccc/ this function will return /a/bb/ccc then it will still
+ * give an invalid path.
  * If path is /a/bb/ccc function will give /a/bb
  */
 char *get_dir_path(char *path) {
   char *file_name = NULL;
   char *parent = NULL;
   file_name = strrchr(path, '/');
-  parent = strndup(path, strlen(path) - strlen(file_name) + 1);
+  parent = strndup(path, strlen(path) - strlen(file_name));
   return parent;
 }
 
@@ -212,7 +212,13 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
 
     // Search through the indirect blocks if not find the target inode
     if (target == NULL && parent->i_block[SINGLE_INDIRECT]) {
-        target = get_entry_in_block(disk, name, parent->i_block[SINGLE_INDIRECT]);
+        unsigned int *indirect = get_indirect_block_loc(disk, parent);
+
+        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
+            if (indirect[i]) {
+                target = get_entry_in_block(disk, name, indirect[i]);
+            }
+        }
     }
 
     return target;
@@ -257,19 +263,19 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
  */
 void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag) {
     // Print all the entries of a given directory in direct blocks.
-    for (int i = 0; i < SINGLE_INDIRECT; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
         if (directory->i_block[i]) {
             print_one_block_entries(get_dir_entry(disk, directory->i_block[i]), flag);
         }
-    }
 
-    // Print all the entries of given directory in indirect blocks.
-    if (directory->i_block[SINGLE_INDIRECT]) {
-        unsigned int *indirect = get_indirect_block_loc(disk, directory);
+        // Print all the entries of given directory in indirect blocks.
+        if (i == SINGLE_INDIRECT) {
+            unsigned int *indirect = get_indirect_block_loc(disk, directory);
 
-        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
-            if (indirect[i]) {
-                print_one_block_entries(get_dir_entry(disk, indirect[i]), flag);
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    print_one_block_entries(get_dir_entry(disk, indirect[j]), flag);
+                }
             }
         }
     }
@@ -363,6 +369,164 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2
             curr_pos = curr_pos + dir->rec_len;
             dir = (void *) dir + dir->rec_len;
         }
+    }
+
+    return -1;
+}
+
+/*
+ * Zero the block bitmap of given inode.
+ */
+void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    unsigned char *bit_map_block = get_block_bitmap_loc(disk, gd);
+
+    // zero through the direct blocks
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+        if (remove->i_block[i]) { // check has data, not points to 0
+            zero_one_block(disk, remove->i_block[i]);
+            bit_map_block[remove->i_block[i] - 1] = 0;
+            remove->i_block[i] = 0; // points to "boot" block ????
+        }
+
+
+        // zero through the single indirect block's blocks
+        if (i == SINGLE_INDIRECT) {
+            unsigned int *indirect = get_indirect_block_loc(disk, remove);
+
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    zero_one_block(disk, indirect[j]);
+                    bit_map_block[indirect[j] - 1] = 0;
+                    indirect[j] = 0; // each indirect block points to "boot" block
+                }
+            }
+
+            // zero the single indirect block
+            zero_one_block(disk, remove->i_block[SINGLE_INDIRECT]);
+            bit_map_block[remove->i_block[SINGLE_INDIRECT] - 1] = 0;
+            remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
+        }
+    }
+}
+
+/*
+ * Zero one data block.
+ */
+void zero_one_block(unsigned char *disk, int block_num) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+
+    struct ext2_dir_entry_2 *curr_dir = get_dir_entry(disk, block_num);
+    int curr_pos = curr_dir->rec_len; // used to keep track of the dir entry in each block
+    struct ext2_dir_entry_2 *prev_dir = NULL;
+
+    while (curr_pos < EXT2_BLOCK_SIZE) {
+        prev_dir = curr_dir;
+
+        /* Moving to the next directory */
+        curr_dir = (void*) curr_dir + curr_dir->rec_len;
+        curr_pos = curr_pos + curr_dir->rec_len;
+
+        prev_dir->rec_len = 0;
+    }
+    curr_dir->rec_len = 0;
+
+    sb->s_free_blocks_count++;
+    gd->bg_free_blocks_count++;
+}
+
+/*
+ * Zero the given inode from the inode bitmap
+ */
+void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+
+    unsigned char *inode_map_block = get_inode_bitmap_loc(disk, gd);
+
+    inode_map_block[get_inode_num(disk, remove) - 1] = 0;
+    sb->s_free_inodes_count++;
+    gd->bg_free_inodes_count++;
+}
+
+/*
+ * Get inode number of given inode if exist, otherwise return 0.
+ */
+int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+
+    int inode_num = 0;
+
+    for (int i = 0; i < sb->s_inodes_count; i++) {
+        if (inode_table[i].i_size && (&(inode_table[i]) == target)) { // there is data
+            inode_num = i + 1;
+        }
+    }
+
+    return inode_num;
+}
+
+/*
+ * Remove the file's name of the given path. Assume the given path
+ * is a path to a valid file (or hard link) / link.
+ */
+void remove_name(unsigned char *disk, char *path) {
+    char *file_name = get_file_name(path);
+    char *parent_path = get_dir_path(path);
+    struct ext2_inode *parent_dir = trace_path(parent_path, disk);
+    int remove = 0;
+
+    // check through the direct blocks
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+        if (parent_dir->i_block[i]) { // check has data, not points to 0
+            remove = remove_name_in_block(disk, file_name, parent_dir->i_block[i]);
+        }
+
+        // check through the single indirect block's blocks
+        if (i == SINGLE_INDIRECT && (remove == 0)) {
+            unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
+
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    remove = remove_name_in_block(disk, file_name, indirect[j]);
+                }
+            }
+        }
+    }
+}
+
+/*
+ * Return 1 if successfully remove the directory entry with given name,
+ * otherwise, return 0.
+ */
+int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
+    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
+
+    int curr_pos = 0; // used to keep track of the dir entry in each block
+    while (curr_pos < EXT2_BLOCK_SIZE) {
+        char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
+
+        // random problem here, may have garbage name
+        for (int u = 0; u < dir->name_len; u++) {
+            entry_name[u] = dir->name[u];
+        }
+        entry_name[dir->name_len] = '\0';
+
+        if (strcmp(entry_name, file_name) == 0) { // find the dir entry with given name
+            dir->name = "\0";
+            dir->rec_len = 0;
+
+            return 1;
+        }
+
+        free(entry_name);
+
+        /* Moving to the next directory */
+        curr_pos = curr_pos + dir->rec_len;
+        dir = (void*) dir + dir->rec_len;
     }
 
     return 0;

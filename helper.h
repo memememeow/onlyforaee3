@@ -107,3 +107,34 @@ struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char 
  * Add new entry into the directory.
  */
 int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);
+
+/*
+ * Zero the block bitmap of given inode.
+ */
+void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
+
+/*
+ * Zero one data block.
+ */
+void zero_one_block(unsigned char *disk, int block_num);
+
+/*
+ * Zero the given inode from the inode bitmap
+ */
+void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
+
+/*
+ * Get inode number of given inode if exist, otherwise return 0.
+ */
+int get_inode_num(unsigned char *disk, struct ext2_inode *target);
+
+/*
+ * Remove the file name in the given inode.
+ */
+void remove_name(unsigned char *disk, char *path);
+
+/*
+ * Return 1 if successfully remove the directory entry with given name,
+ * otherwise, return 0.
+ */
+int remove_name_in_block(unsigned char *disk, char *file_name, int block_num);

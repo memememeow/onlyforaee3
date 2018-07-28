@@ -19,7 +19,7 @@ int main (int argc, char **argv) {
   // in such directory.
 
   // Check valid command line arguments
-  if (argc != 4 && argc != 4) {
+  if (argc != 4) {
     printf("Usage: ext2_ls <virtual_disk> <source_file> <absolute_path> <-a>\n");
     exit(1);
   }
@@ -53,6 +53,8 @@ int main (int argc, char **argv) {
   struct stat st;
   fstat(fd, &st);
   int file_size = st.st_size;
+  int blocks_needed = file_size / EXT2_BLOCK_SIZE +
+    (file_size % EXT2EXT2_BLOCK_SIZE != 0);
 
   char type = '\0';
   char *name_var;
@@ -84,7 +86,7 @@ int main (int argc, char **argv) {
 
   // If directory path
   // name variable -> source file name
-  if (target_inode->.i_mode & EXT2_S_IFDIR) {
+  if (target_inode->i_mode & EXT2_S_IFDIR) {
     type = 'd';
     name_var = get_file_name(argv[2]);
     dir_inode = target_inode;
@@ -94,7 +96,6 @@ int main (int argc, char **argv) {
   // If soft link check if file still exist, if exist check name
   // Hard link -> check count, same as normal aboslute path
   if (target_inode->i_mode & EXT2_S_IFLNK) {
-    // TODO
     type = 'l';
     printf("%s :File exists.\n", argv[3]);
     return EEXIST;
@@ -103,25 +104,25 @@ int main (int argc, char **argv) {
   // Check if there is enough inode (require 1)
   if (disk->s_free_inodes_count <= 0) {
     printf("File system does not have enough free inodes.\n");
-    return ENOENT;
+    return ENOSPC;
   }
 
   // Check if there is enough blocks for Data
-  if (disk->s_free_blocks_count * EXT2_BLOCK_SIZE < file_size) {
+  if ((blocks_needed <= 12 && disk->s_free_blocks_count < blocks_needed) ||
+    (blocks_needed > 12 && disk->s_free_blocks_count < blocks_needed + 1)) {
     printf("File system does not have enough free blocks.\n");
-    return ENOENT;
-  }
+    return ENOSPC;
+  } // If indirected block needed, one more indirect block is required to store pointers
 
   // Require a free inode
   int i_num = get_free_inode(b, i_bitmap);
   struct ext2_inode *tar_node = i_bitmap[i_num - 1];
 
   // Init the inode
-  tar_node->i_mode = EXT2_FT_REG_FILE;
+  tar_node->i_mode = EXT2_S_IFREG;
   tar_node->i_size = (unsigned int) file_size;
-  tar_node->i_links_count = 0; // ??
+  tar_node->i_links_count = 1; // ?? or 1?
   tar_node->i_blocks = 0;
-  // What is i_blocks?
 
   // Change data in superblock and group desciptor
   sb -> s_free_inodes_count --;
@@ -131,8 +132,7 @@ int main (int argc, char **argv) {
   // Requires enough blocks
   char buf[EXT2_BLOCK_SIZE];
   int iblock_index = 0;
-  int indirect_b = -1;
-  int indirect_index = 0;
+  int indirect_num;
 
   while (read(fd, buf, EXT2_BLOCK_SIZE) != 0) {
     if (iblock_index < SINGLE_INDIRECT) {
@@ -140,24 +140,32 @@ int main (int argc, char **argv) {
       unsigned char *block = disk + b_index * EXT2_BLOCK_SIZE;
       memcpy(block, buf, EXT2_BLOCK_SIZE);
       tar_node->i_block[iblock_index] = (unsigned int) b_index;
+      tar_inode->i_blocks += 2;
       iblock_index ++;
 
     } else { //SINGLE_INDIRECT
-      if (indirect_b == -1) { // First time access indirect blocks
-        int indirect_b = get_free_block(sb, b_bitmap);
+      if (iblock_index == 12) { // First time access indirect blocks
+        indirect_num = get_free_block(sb, b_bitmap);
+        tar_inode->i_blocks += 2;
       }
 
-      unsigned int *indirect_block = (unsigned int *)(disk + indirect_b * EXT2_BLOCK_SIZE);
+      unsigned int *indirect_block = (unsigned int *)(disk + indirect_num * EXT2_BLOCK_SIZE);
       int b_index = get_free_block(sb, b_bitmap);
       unsigned char *block = disk + b_index * EXT2_BLOCK_SIZE;
       memcpy(block, buf, EXT2_BLOCK_SIZE);
-      indirect_block[indirect_index] = b_index;
-      indirect_index ++;
+      indirect_block[iblock_index - 12] = b_index;
+      tar_inode->i_blocks += 2;
+      iblock_index ++;
     }
   }
+
+  sb -> s_free_blocks_count -= tar_inode->i_blocks / 2;
+  gd -> bg_free_blocks_count -= tar_inode->i_blocks / 2;
 
   // Create a new entry in directory
   struct ext2_dir_entry_2 *new_entry = setup_entry(tar_inode, name_var, type);
   // Init entry, reate new file with name variable
   add_new_entry(dir_inode, new_entry);
+
+  return 0;
 }
