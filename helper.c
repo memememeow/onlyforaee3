@@ -505,20 +505,26 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
 
     int curr_pos = 0; // used to keep track of the dir entry in each block
+    struct ext2_dir_entry_2 *prev_dir = NULL;
+
     while (curr_pos < EXT2_BLOCK_SIZE) {
         char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
 
-        // random problem here, may have garbage name
         for (int u = 0; u < dir->name_len; u++) {
             entry_name[u] = dir->name[u];
         }
         entry_name[dir->name_len] = '\0';
 
         if (strcmp(entry_name, file_name) == 0) { // find the dir entry with given name
-            for (int i = 0; i < dir->name_len; i++) {
+           for (int i = 0; i < dir->name_len; i++) {
                 dir->name[i] = '\0';
+           }
+
+            if (prev_dir != NULL) { // need to update of the rec_len of the previous dir entry
+                prev_dir->rec_len += dir->rec_len;
             }
             dir->rec_len = 0;
+            free(entry_name);
             return 1;
         }
 
@@ -526,8 +532,14 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
 
         /* Moving to the next directory */
         curr_pos = curr_pos + dir->rec_len;
+        prev_dir = dir;
         dir = (void*) dir + dir->rec_len;
     }
+
+    for (int i = 0; i < dir->name_len; i++) {
+        dir->name[i] = '\0';
+    }
+    dir->rec_len = 0;
 
     return 0;
 }
