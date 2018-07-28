@@ -383,13 +383,14 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
     // zero through the direct blocks
     for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
-        if (bit_map_block[remove->i_block[i] - 1]) { // check bitmap has data
+        if (remove->i_block[i]) { // check has data, not points to 0
             zero_one_block(disk, remove->i_block[i]);
             bit_map_block[remove->i_block[i] - 1] = 0;
+            remove->i_block[i] = 0; // points to "boot" block ????
         }
 
 
-        // zero through the indirect blocks
+        // zero through the single indirect block's blocks
         if (i == SINGLE_INDIRECT) {
             unsigned int *indirect = get_indirect_block_loc(disk, remove);
 
@@ -397,10 +398,14 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
                 if (indirect[j]) {
                     zero_one_block(disk, indirect[j]);
                     bit_map_block[indirect[j] - 1] = 0;
+                    indirect[j] = 0; // each indirect block points to "boot" block
                 }
             }
 
+            // zero the single indirect block
+            zero_one_block(disk, remove->i_block[SINGLE_INDIRECT]);
             bit_map_block[remove->i_block[SINGLE_INDIRECT] - 1] = 0;
+            remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
         }
     }
 }
