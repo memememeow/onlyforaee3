@@ -371,7 +371,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2
         }
     }
 
-    return 0;
+    return -1;
 }
 
 /*
