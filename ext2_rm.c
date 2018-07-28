@@ -40,14 +40,18 @@ int main(int argc, char **argv) {
     if (path_inode->i_links_count > 1) {
         // decrement links_count
         path_inode->i_links_count--;
-        // set delete time
-        path_inode->i_dtime = (unsigned int) time(NULL);
 
     } else { // links_count == 1, need to remove the actual file/link
         // zero the block bitmap
         zero_block_bitmap(disk, path_inode);
         // zero the inode bitmap
         zero_inode_bitmap(disk, path_inode);
+
+        // set delete time, in order to reuse inode
+        path_inode->i_dtime = (unsigned int) time(NULL);
+        path_inode->i_size = 0;
+        path_inode->i_links_count = 0;
+        path_inode->i_blocks = 0;
     }
 
     return 0;
