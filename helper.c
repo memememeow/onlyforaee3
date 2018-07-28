@@ -516,6 +516,9 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
         entry_name[dir->name_len] = '\0';
 
         if (strcmp(entry_name, file_name) == 0) { // find the dir entry with given name
+            for (int i = 0; i < dir->name_len; i++) {
+                dir->name[i] = '\0';
+            }
             dir->rec_len = 0;
             return 1;
         }
