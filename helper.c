@@ -106,15 +106,15 @@ char *get_file_name(char *path) {
  * Return the path except the final path name. With assumption that the path is
  * a valid path and it is a path of a file.
  *
- * If path is /a/bb/ccc/ this function will return /a/bb/ccc then it will still
- * give an invalid path.
- * If path is /a/bb/ccc function will give /a/bb
+ * If path is /a/bb/ccc/ this function will return /a/bb/ccc/ it will still
+ * an invalid path.
+ * If path is /a/bb/ccc function will give /a/bb/
  */
 char *get_dir_path(char *path) {
   char *file_name = NULL;
   char *parent = NULL;
   file_name = strrchr(path, '/');
-  parent = strndup(path, strlen(path) - strlen(file_name));
+  parent = strndup(path, strlen(path) - strlen(file_name) + 1);
   return parent;
 }
 
