@@ -269,7 +269,7 @@ void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag
         }
 
         // Print all the entries of given directory in indirect blocks.
-        if (i == 12) {
+        if (i == SINGLE_INDIRECT) {
             unsigned int *indirect = get_indirect_block_loc(disk, directory);
 
             for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
@@ -382,25 +382,26 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     unsigned char *bit_map_block = get_block_bitmap_loc(disk, gd);
 
     // zero through the direct blocks
-    for (int i = 0; i < SINGLE_INDIRECT; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
         if (bit_map_block[remove->i_block[i] - 1]) { // check bitmap has data
             zero_one_block(disk, remove->i_block[i]);
             bit_map_block[remove->i_block[i] - 1] = 0;
         }
-    }
 
-    // zero through the indirect blocks
-    if (remove->i_block[SINGLE_INDIRECT]) {
-        unsigned int *indirect = get_indirect_block_loc(disk, remove);
 
-        for (int i = 0; i < EXT2_BLOCK_SIZE / sizeof(unsigned int); i++) {
-            if (indirect[i]) {
-                zero_one_block(disk, indirect[i]);
-                bit_map_block[indirect[i] - 1] = 0;
+        // zero through the indirect blocks
+        if (i == SINGLE_INDIRECT) {
+            unsigned int *indirect = get_indirect_block_loc(disk, remove);
+
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    zero_one_block(disk, indirect[j]);
+                    bit_map_block[indirect[j] - 1] = 0;
+                }
             }
-        }
 
-        bit_map_block[remove->i_block[SINGLE_INDIRECT] - 1] = 0;
+            bit_map_block[remove->i_block[SINGLE_INDIRECT] - 1] = 0;
+        }
     }
 }
 
