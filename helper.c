@@ -622,5 +622,32 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
  * Remove the directory of given path.
  */
 void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
-    // first clear all the content inside this
+    // first clear all the content inside this dir
+
+    // then remove this dir (from its parent)
+    char *parent_path = get_dir_parent_path(path);
+}
+
+/*
+ * Get parent dir of a directory
+ */
+char *get_dir_parent_path(char *path) {
+    char *file_name = NULL;
+    char *parent = NULL;
+    char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
+
+    if (path[strlen(path) - 1] == '/') { // remove last '/'
+        for (int i = 0; i < strlen(path) - 1; i++) {
+            full_path[i] = path[i];
+        }
+
+        full_path[strlen(path) - 1] = '\0';
+    } else {
+        strncpy(full_path, path, strlen(path));
+    }
+
+    file_name = strrchr(full_path, '/');
+    parent = strndup(full_path, strlen(full_path) - strlen(file_name) + 1);
+
+    return parent;
 }
