@@ -445,6 +445,10 @@ void clear_one_block(unsigned char *disk, int block_num) {
         dir = (void*) dir + dir->rec_len;
 
         pre_dir->rec_len = 0;
+        for (int i = 0; i < pre_dir->name_len; i++) {
+            pre_dir->name[i] = '\0';
+        }
+        pre_dir->name_len = 0;
     }
 
     sb->s_free_blocks_count++;
