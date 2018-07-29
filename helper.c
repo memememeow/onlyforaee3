@@ -617,3 +617,10 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
         path_inode->i_blocks = 0;
     }
 }
+
+/*
+ * Remove the directory of given path.
+ */
+void remove_dir(unsigned char *disk, struct ext2_inode *path_inode, char *path) {
+
+}
