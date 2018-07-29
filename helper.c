@@ -637,7 +637,8 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
                     || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
                     remove_file_or_link(disk, entry_inode, entry_path);
                 } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
-                    if (get_inode_num(disk, entry_inode) != 2) { // avoid root
+                    if ((strcmp(dir_entry->name, ".") == 0)
+                        || (strcmp(dir_entry->name, "..") == 0)) { // avoid root
                         remove_dir(disk, entry_inode, entry_path);
                     }
                 }
@@ -666,7 +667,8 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
                         || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
                         remove_file_or_link(disk, entry_inode, entry_path);
                     } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
-                        if (get_inode_num(disk, entry_inode) != 2) { // avoid root
+                        if ((strcmp(dir_entry->name, ".") == 0)
+                            || (strcmp(dir_entry->name, "..") == 0)) { // avoid root
                             remove_dir(disk, entry_inode, entry_path);
                         }
                     }
