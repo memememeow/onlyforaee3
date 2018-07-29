@@ -276,15 +276,15 @@ void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag
         if (directory->i_block[i]) {
             print_one_block_entries(get_dir_entry(disk, directory->i_block[i]), flag);
         }
+    }
 
-        // Print all the entries of given directory in indirect blocks.
-        if (i == SINGLE_INDIRECT) {
-            unsigned int *indirect = get_indirect_block_loc(disk, directory);
+    // Print all the entries of given directory in indirect blocks.
+    if (directory->i_block[SINGLE_INDIRECT]) {
+        unsigned int *indirect = get_indirect_block_loc(disk, directory);
 
-            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
-                if (indirect[j]) {
-                    print_one_block_entries(get_dir_entry(disk, indirect[j]), flag);
-                }
+        for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+            if (indirect[j]) {
+                print_one_block_entries(get_dir_entry(disk, indirect[j]), flag);
             }
         }
     }
@@ -517,29 +517,28 @@ int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
 }
 
 /*
- * Remove the file's name of the given path. Assume the given path
- * is a path to a valid file (or hard link) / link.
+ * Remove the file's or directory's name of the given path.
  */
 void remove_name(unsigned char *disk, char *path) {
     char *file_name = get_file_name(path);
-    char *parent_path = get_dir_path(path);
+    char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
     int remove = 0;
 
     // check through the direct blocks
-    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (parent_dir->i_block[i]) { // check has data, not points to 0
             remove = remove_name_in_block(disk, file_name, parent_dir->i_block[i]);
         }
+    }
 
-        // check through the single indirect block's blocks
-        if (i == SINGLE_INDIRECT && (remove == 0)) {
-            unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
+    // check through the single indirect block's blocks
+    if (parent_dir->i_block[SINGLE_INDIRECT] && (remove == 0)) {
+        unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
 
-            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
-                if (indirect[j]) {
-                    remove = remove_name_in_block(disk, file_name, indirect[j]);
-                }
+        for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+            if (indirect[j]) {
+                remove_name_in_block(disk, file_name, indirect[j]);
             }
         }
     }
@@ -621,45 +620,78 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
  * Remove the directory of given path.
  */
 void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
+    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk, gd);
+
     // first clear all the content inside this dir, use recursion
-    // check through the direct blocks
-    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (dir->i_block[i]) { // check has data, not points to 0
             struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, dir->i_block[i]);
+            int curr_pos = 0;
 
-            if ((dir_entry->file_type == EXT2_FT_REG_FILE)
-                || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
-                // get the file or link inode
+            while (curr_pos < EXT2_BLOCK_SIZE) {
+                struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode]);
+                char *entry_path = combine_name(path, dir_entry);
 
-                // get the file or link path
+                if ((dir_entry->file_type == EXT2_FT_REG_FILE)
+                    || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
+                    remove_file_or_link(disk, entry_inode, entry_path);
+                } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
+                    remove_dir(disk, entry_inode, entry_path);
+                }
 
-
-                remove_file_or_link(disk, struct ext2_inode *file_inode, combine_name(path, dir_entry->name));
-            } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
-                // get the directory inode
-
-                // get the directory path
-
-                remove_dir(disk, struct ext2_inode *dir_inode, combine_name(path, dir_entry->name));
+                /* Moving to the next directory */
+                curr_pos = curr_pos + dir_entry->rec_len;
+                dir_entry = (void*) dir_entry + dir_entry->rec_len;
             }
         }
+    }
 
-        // check through the single indirect block's blocks
-        if (i == SINGLE_INDIRECT && (remove == 0)) {
-            unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
+    // check through the single indirect block's blocks
+    if (dir->i_block[SINGLE_INDIRECT]) {
+        unsigned int *indirect = get_indirect_block_loc(disk, dir);
 
-            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
-                if (indirect[j]) {
-                    remove = remove_name_in_block(disk, file_name, indirect[j]);
+        for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+            if (indirect[j]) {
+                struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, indirect[j]);
+                int curr_pos = 0;
+
+                while (curr_pos < EXT2_BLOCK_SIZE) {
+                    struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode]);
+                    char *entry_path = combine_name(path, dir_entry);
+
+                    if ((dir_entry->file_type == EXT2_FT_REG_FILE)
+                        || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
+                        remove_file_or_link(disk, entry_inode, entry_path);
+                    } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
+                        remove_dir(disk, entry_inode, entry_path);
+                    }
+
+                    /* Moving to the next directory */
+                    curr_pos = curr_pos + dir_entry->rec_len;
+                    dir_entry = (void*) dir_entry + dir_entry->rec_len;
                 }
             }
         }
     }
 
-    // then remove this dir (from its parent)
+    // then update some parameters and bitmaps
     char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
+    parent_dir->i_links_count--;
 
+    clear_block_bitmap(disk, dir);
+    clear_inode_bitmap(disk, dir);
+
+    // set delete time inorder to reuse inode
+    dir->i_dtime = (unsigned int) time(NULL);
+    dir->i_size = 0;
+    dir->i_blocks = 0;
+
+    // last remove this dir from its parent
+    remove_name(disk, path);
 }
 
 /*
