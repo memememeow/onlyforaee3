@@ -1,0 +1,10 @@
+#!/bin/bash
+
+cp ./orig_img/emptydisk.img ./
+cp ./orig_img/deleteddirectory.img ./
+cp ./orig_img/deletedfile.img ./
+cp ./orig_img/hardlink.img ./
+cp ./orig_img/largefile.img ./
+cp ./orig_img/onedirectory.img ./
+cp ./orig_img/onefile.img ./
+cp ./orig_img/twolevel.img ./
