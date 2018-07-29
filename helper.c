@@ -634,13 +634,13 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
                 // get the file or link path
 
 
-                remove_file_or_link(disk, struct ext2_inode *file_inode, entry_path);
+                remove_file_or_link(disk, struct ext2_inode *file_inode, combine_name(path, dir_entry->name));
             } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
                 // get the directory inode
 
                 // get the directory path
 
-                remove_dir(disk, struct ext2_inode *dir_inode, entry_path);
+                remove_dir(disk, struct ext2_inode *dir_inode, combine_name(path, dir_entry->name));
             }
         }
 
