@@ -374,17 +374,28 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2
 }
 
 /*
- * Zero the block bitmap of given inode.
+ * Zero block [inode / block] bitmap of given block number.
  */
-void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+void zero_bitmap(unsigned char *block, int block_num) {
+    int bitmap_byte = block_num/ 8;
+    int bit_order = block_num % 8;
+    block[bitmap_byte] &= ~(1 << (bit_order - 1));
+}
+
+
+/*
+ * Clear all the entries in the blocks of given inode and
+ * zero the block bitmap of given inode.
+ */
+void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    unsigned char *bit_map_block = get_block_bitmap_loc(disk, gd);
+    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
 
     // zero through the direct blocks
     for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
         if (remove->i_block[i]) { // check has data, not points to 0
-            zero_one_block(disk, remove->i_block[i]);
-            bit_map_block[remove->i_block[i] - 1] = 0;
+            clear_one_block(disk, remove->i_block[i]);
+            zero_bitmap(block_bitmap, remove->i_block[i]);
             remove->i_block[i] = 0; // points to "boot" block ????
         }
 
@@ -395,24 +406,24 @@ void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
             for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
                 if (indirect[j]) {
-                    zero_one_block(disk, indirect[j]);
-                    bit_map_block[indirect[j] - 1] = 0;
+                    clear_one_block(disk, indirect[j]);
+                    zero_bitmap(block_bitmap, indirect[j]);
                     indirect[j] = 0; // each indirect block points to "boot" block
                 }
             }
 
             // zero the single indirect block
-            zero_one_block(disk, remove->i_block[SINGLE_INDIRECT]);
-            bit_map_block[remove->i_block[SINGLE_INDIRECT] - 1] = 0;
+            clear_one_block(disk, remove->i_block[SINGLE_INDIRECT]);
+            zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
             remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
         }
     }
 }
 
 /*
- * Zero one data block.
+ * Clear all the entries in one block.
  */
-void zero_one_block(unsigned char *disk, int block_num) {
+void clear_one_block(unsigned char *disk, int block_num) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
 
@@ -436,17 +447,15 @@ void zero_one_block(unsigned char *disk, int block_num) {
 }
 
 /*
- * Zero the given inode from the inode bitmap
+ * Zero the given inode from the inode bitmap.
  */
-void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+void clear_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    unsigned char *inode_map_block = get_inode_bitmap_loc(disk, gd);
+    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk, gd);
 
     int inode_number = get_inode_num(disk, remove);
-    int bitmap_byte = inode_number / 8;
-    int bit_order = inode_number % 8;
-    inode_map_block[bitmap_byte] &= ~(1 << (bit_order - 1));
+    zero_bitmap(inode_bitmap, inode_number);
 
     sb->s_free_inodes_count++;
     gd->bg_free_inodes_count++;

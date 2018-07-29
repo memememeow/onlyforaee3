@@ -109,19 +109,25 @@ struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char 
 int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);
 
 /*
- * Zero the block bitmap of given inode.
+ * Zero block [inode / block] bitmap of given block number.
  */
-void zero_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
+void zero_bitmap(unsigned char *block, int block_num);
 
 /*
- * Zero one data block.
+ * Clear all the entries in the blocks of given inode and
+ * zero the block bitmap of given inode.
  */
-void zero_one_block(unsigned char *disk, int block_num);
+void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
+
+/*
+ * Clear all the entries in one block.
+ */
+void clear_one_block(unsigned char *disk, int block_num);
 
 /*
  * Zero the given inode from the inode bitmap
  */
-void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
+void clear_inode_bitmap(unsigned char *disk, struct ext2_inode *remove);
 
 /*
  * Get inode number of given inode if exist, otherwise return 0.
