@@ -441,10 +441,13 @@ void zero_one_block(unsigned char *disk, int block_num) {
 void zero_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-
     unsigned char *inode_map_block = get_inode_bitmap_loc(disk, gd);
 
-    inode_map_block[get_inode_num(disk, remove) - 1] = 0;
+    int inode_number = get_inode_num(disk, remove);
+    int bitmap_byte = inode_number / 8;
+    int bit_order = inode_number % 8;
+    inode_map_block[bitmap_byte] &= ~(1 << (bit_order - 1));
+
     sb->s_free_inodes_count++;
     gd->bg_free_inodes_count++;
 }
