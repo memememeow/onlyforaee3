@@ -431,20 +431,19 @@ void clear_one_block(unsigned char *disk, int block_num) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
 
-    struct ext2_dir_entry_2 *curr_dir = get_dir_entry(disk, block_num);
-    int curr_pos = curr_dir->rec_len; // used to keep track of the dir entry in each block
-    struct ext2_dir_entry_2 *prev_dir = NULL;
+    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
+    struct ext2_dir_entry_2 *pre_dir = NULL;
+    int curr_pos = 0; // used to keep track of the dir entry in each block
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
-        prev_dir = curr_dir;
+        pre_dir = dir;
 
         /* Moving to the next directory */
-        curr_dir = (void*) curr_dir + curr_dir->rec_len;
-        curr_pos = curr_pos + curr_dir->rec_len;
+        curr_pos = curr_pos + dir->rec_len;
+        dir = (void*) dir + dir->rec_len;
 
-        prev_dir->rec_len = 0;
+        pre_dir->rec_len = 0;
     }
-    curr_dir->rec_len = 0;
 
     sb->s_free_blocks_count++;
     gd->bg_free_blocks_count++;
