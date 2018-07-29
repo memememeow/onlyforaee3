@@ -421,32 +421,31 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *pa
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
 
-    // zero through the direct blocks
+    // zero through the blocks on the first level
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (remove->i_block[i]) { // check has data, not points to 0
+
+            // zero through the blocks on the first level
             clear_one_block(disk, remove->i_block[i]);
             zero_bitmap(block_bitmap, remove->i_block[i]);
             remove->i_block[i] = 0; // points to "boot" block
-
         }
+    }
 
-        // zero through the single indirect block's blocks
-        if (i == SINGLE_INDIRECT) {
-            unsigned int *indirect = get_indirect_block_loc(disk, remove);
+    // zero through the blocks on the second level
+    if (remove->i_block[SINGLE_INDIRECT]) {
+        unsigned int *indirect = get_indirect_block_loc(disk, remove);
 
-            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
-                if (indirect[j]) {
-                    clear_one_block(disk, indirect[j]);
-                    zero_bitmap(block_bitmap, indirect[j]);
-                    indirect[j] = 0; // each indirect block points to "boot" block
-                }
+        for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+            if (indirect[j]) {
+                clear_one_block(disk, indirect[j]);
+                zero_bitmap(block_bitmap, indirect[j]);
+                indirect[j] = 0; // each indirect block points to "boot" block
             }
-
-            // zero the single indirect block
-            clear_one_block(disk, remove->i_block[SINGLE_INDIRECT]);
-            zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
-            remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
         }
+
+        zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
+        remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
 
     remove_name(disk, path);
