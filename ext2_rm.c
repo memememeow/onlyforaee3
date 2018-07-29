@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 
     } else { // links_count == 1, need to remove the actual file/link
         // clear and zero the block bitmap
-        clear_block_bitmap(disk, path_inode);
+        clear_block_bitmap(disk, path_inode, argv[2]);
         // clear and zero the inode bitmap
         clear_inode_bitmap(disk, path_inode);
 
