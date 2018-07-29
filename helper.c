@@ -688,6 +688,7 @@ char *get_dir_parent_path(char *path) {
 
 /*
  * Combine the parent path and the file/link/directory name.
+ * Example: /a/bb (or /a/bb/) and ccc outputs /a/bb/ccc
  */
 char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
     char *full_path = malloc(sizeof(char) * (strlen(parent_path) + 1 + dir_entry->name_len + 1));
