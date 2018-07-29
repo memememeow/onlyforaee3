@@ -379,7 +379,11 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2
 void zero_bitmap(unsigned char *block, int block_num) {
     int bitmap_byte = block_num/ 8;
     int bit_order = block_num % 8;
-    block[bitmap_byte] &= ~(1 << (bit_order - 1));
+    if (bit_order != 0) {
+        block[bitmap_byte] &= ~(1 << (bit_order - 1));
+    } else { // bit_order == 0
+        block[bitmap_byte - 1] &= ~(1 << (8 - 1));
+    }
 }
 
 
