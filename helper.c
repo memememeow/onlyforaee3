@@ -349,24 +349,29 @@ struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char 
 /*
  * Add new entry into the directory.
  */
-int add_new_entry(unsigned char *disk, struct ext2_super_block *sb, unsigned char *block_bitmap, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry) {
+int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
+
     // Recalls that there are 12 direct blocks.
     for (int k = 0; k < 12; k++) {
         // If the block exists i.e. not 0.
         int block_num = dir_inode->i_block[k];
         if (block_num == 0) { // What is init number for block?
-          int b_num = get_free_block(sb, b_bitmap);
+          int b_num = get_free_block(sb, block_bitmap);
           if (b_num == -1) {
             return -1;
           }
-          struct ext2_dir_entry_2 *block = (struct ext2_dir_entry_2 *)(disk + b_num * EXT2_BLOCK_SIZE);
-          struct ext2_dir_entry_2 *dir = &(block[0]);
-          dir->inode = new_entry->inode;
-          dir->name_len = new_entry->name_len;
-          dir->file_type = new_entry->file_type;
-          dir->rec_len = EXT2_BLOCK_SIZE;
-          return 0;
+            struct ext2_dir_entry_2 *block = get_dir_entry(disk, b_num);
+            struct ext2_dir_entry_2 *dir = &(block[0]);
+            dir->inode = new_entry->inode;
+            dir->name_len = new_entry->name_len;
+            dir->file_type = new_entry->file_type;
+            dir->rec_len = EXT2_BLOCK_SIZE;
+            return 0;
         }
+
         struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
         int curr_pos = 0;
 
