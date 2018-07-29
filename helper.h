@@ -117,7 +117,7 @@ void zero_bitmap(unsigned char *block, int block_num);
  * Clear all the entries in the blocks of given inode and
  * zero the block bitmap of given inode.
  */
-void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *path);
+void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
 
 /*
  * Clear all the entries in one block.

@@ -418,7 +418,7 @@ void zero_bitmap(unsigned char *block, int block_num) {
  * Clear all the entries in the blocks of given inode and
  * zero the block bitmap of given inode.
  */
-void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *path) {
+void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
@@ -451,8 +451,6 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *pa
         gd->bg_free_blocks_count++;
         remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
-
-    remove_name(disk, path);
 }
 
 /*
@@ -602,12 +600,10 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
     if (path_inode->i_links_count > 1) {
         // decrement links_count
         path_inode->i_links_count--;
-        // remove current file's name but keep the inode
-        remove_name(disk, path);
 
     } else { // links_count == 1, need to remove the actual file/link
         // clear and zero the block bitmap
-        clear_block_bitmap(disk, path_inode, path);
+        clear_block_bitmap(disk, path_inode);
         // clear and zero the inode bitmap
         clear_inode_bitmap(disk, path_inode);
 
@@ -616,6 +612,9 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
         path_inode->i_size = 0;
         path_inode->i_blocks = 0;
     }
+
+    // remove current file's name but keep the inode
+    remove_name(disk, path);
 }
 
 /*
@@ -626,6 +625,9 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
 
     // then remove this dir (from its parent)
     char *parent_path = get_dir_parent_path(path);
+    struct ext2_inode *parent_dir = trace_path(parent_path, disk);
+
+
 }
 
 /*
