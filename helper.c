@@ -630,7 +630,7 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
             int curr_pos = 0;
 
             while (curr_pos < EXT2_BLOCK_SIZE) {
-                struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode]);
+                struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode - 1]);
                 char *entry_path = combine_name(path, dir_entry);
 
                 if ((dir_entry->file_type == EXT2_FT_REG_FILE)
@@ -657,7 +657,7 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
                 int curr_pos = 0;
 
                 while (curr_pos < EXT2_BLOCK_SIZE) {
-                    struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode]);
+                    struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode - 1]);
                     char *entry_path = combine_name(path, dir_entry);
 
                     if ((dir_entry->file_type == EXT2_FT_REG_FILE)
