@@ -159,3 +159,8 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path);
  * Get parent dir of a directory, exclude root dir.
  */
 char *get_dir_parent_path(char *path);
+
+/*
+ * Combine the parent path and the file/link/directory name.
+ */
+char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry);
