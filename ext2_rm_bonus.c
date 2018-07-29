@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     struct ext2_inode *path_inode = trace_path(argv[2], disk);
 
     // The file/lin do not exist
-    if ((path_inode == NULL)) {
+    if (path_inode == NULL) {
         return ENOENT;
     }
 
