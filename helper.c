@@ -707,7 +707,7 @@ char *get_dir_parent_path(char *path) {
 
         full_path[strlen(path) - 1] = '\0';
     } else {
-        strncpy(full_path, path, strlen(path));
+        strncpy(full_path, path, strlen(path) + 1);
     }
 
     file_name = strrchr(full_path, '/');
@@ -724,11 +724,11 @@ char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
     char *full_path = malloc(sizeof(char) * (strlen(parent_path) + 1 + dir_entry->name_len + 1));
 
     if (parent_path[strlen(parent_path) - 1] == '/') {
-        strncpy(full_path, parent_path, strlen(parent_path));
+        strncpy(full_path, parent_path, strlen(parent_path) + 1);
         strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
     } else {
-        strncpy(full_path, parent_path, strlen(parent_path));
-        strncat(full_path, "/", 1);
+        strncpy(full_path, parent_path, strlen(parent_path) + 1);
+        strncat(full_path, "/", 2);
         strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
     }
 
