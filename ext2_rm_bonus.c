@@ -27,8 +27,14 @@ int main(int argc, char **argv) {
     struct ext2_inode *path_inode = trace_path(argv[2], disk);
 
     // The file/lin do not exist
-    if (path_inode == NULL) {
+    if ((path_inode == NULL)) {
         return ENOENT;
+    }
+
+    // Cannot delete root
+    if (strcmp(argv[2], "/") == 0) {
+        printf("User cannot delete the root dir.\n");
+        exit(1);
     }
 
     // Is a file or link
