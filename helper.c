@@ -263,7 +263,7 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
  */
 void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag) {
     // Print all the entries of a given directory in direct blocks.
-    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (directory->i_block[i]) {
             print_one_block_entries(get_dir_entry(disk, directory->i_block[i]), flag);
         }
