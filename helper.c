@@ -622,8 +622,6 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
 void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
-    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
-    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk, gd);
 
     // first clear all the content inside this dir, use recursion
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
