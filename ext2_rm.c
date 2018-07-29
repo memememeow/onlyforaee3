@@ -44,10 +44,10 @@ int main(int argc, char **argv) {
         remove_name(disk, argv[2]);
 
     } else { // links_count == 1, need to remove the actual file/link
-        // zero the block bitmap
-        zero_block_bitmap(disk, path_inode);
-        // zero the inode bitmap
-        zero_inode_bitmap(disk, path_inode);
+        // clear and zero the block bitmap
+        clear_block_bitmap(disk, path_inode);
+        // clear and zero the inode bitmap
+        clear_inode_bitmap(disk, path_inode);
 
         // set delete time, in order to reuse inode
         path_inode->i_dtime = (unsigned int) time(NULL);
