@@ -153,4 +153,4 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
 /*
  * Remove the directory of given path.
  */
-void remove_dir(unsigned char *disk, struct ext2_inode *path_inode, char *path);
+void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path);
