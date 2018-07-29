@@ -128,7 +128,7 @@ int get_free_inode(struct ext2_super_block *sb, unsigned char *inode_bitmap) {
         int bit_order = i % 8;
         if ((inode_bitmap[bitmap_byte] >> bit_order) ^ 1) {
             // Such bit is 0, which is a free inode
-            inode_bitmap[bitmap_byte] |= 1 << (7 - bit_order);
+            inode_bitmap |= 1 << (i + 1);
             return i + 1;
         }
     }
@@ -146,7 +146,7 @@ int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap) {
         int bit_order = i % 8;
         if ((block_bitmap[bitmap_byte] >> bit_order) ^ 1) {
             // Such bit is 0, which is a free block
-            block_bitmap[bitmap_byte] |= 1 << (7 - bit_order);
+            block_bitmap |= 1 << (i + 1);
             return i;
         }
     }
