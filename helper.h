@@ -144,3 +144,8 @@ void remove_name(unsigned char *disk, char *path);
  * otherwise, return 0.
  */
 int remove_name_in_block(unsigned char *disk, char *file_name, int block_num);
+
+/*
+ * Remove a file or link in the given path.
+ */
+void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, char *path);

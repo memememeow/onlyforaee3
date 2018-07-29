@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <time.h>
 #include "ext2.h"
 #include "helper.h"
 
@@ -591,4 +592,28 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
     dir->rec_len = 0;
 
     return 0;
+}
+
+/*
+ * Remove a file or link in the given path.
+ */
+void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, char *path) {
+    // Get the inode of a file/link which need to be removed
+    if (path_inode->i_links_count > 1) {
+        // decrement links_count
+        path_inode->i_links_count--;
+        // remove current file's name but keep the inode
+        remove_name(disk, path);
+
+    } else { // links_count == 1, need to remove the actual file/link
+        // clear and zero the block bitmap
+        clear_block_bitmap(disk, path_inode, path);
+        // clear and zero the inode bitmap
+        clear_inode_bitmap(disk, path_inode);
+
+        // set delete time, in order to reuse inode
+        path_inode->i_dtime = (unsigned int) time(NULL);
+        path_inode->i_size = 0;
+        path_inode->i_blocks = 0;
+    }
 }

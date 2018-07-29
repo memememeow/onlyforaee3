@@ -36,24 +36,7 @@ int main(int argc, char **argv) {
         return EISDIR;
     }
 
-    // Get the inode of a file/link which need to be removed
-    if (path_inode->i_links_count > 1) {
-        // decrement links_count
-        path_inode->i_links_count--;
-        // remove current file's name but keep the inode
-        remove_name(disk, argv[2]);
-
-    } else { // links_count == 1, need to remove the actual file/link
-        // clear and zero the block bitmap
-        clear_block_bitmap(disk, path_inode, argv[2]);
-        // clear and zero the inode bitmap
-        clear_inode_bitmap(disk, path_inode);
-
-        // set delete time, in order to reuse inode
-        path_inode->i_dtime = (unsigned int) time(NULL);
-        path_inode->i_size = 0;
-        path_inode->i_blocks = 0;
-    }
+    remove_file_or_link(disk, path_inode, argv[2]);
 
     return 0;
 }
