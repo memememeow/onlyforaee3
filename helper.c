@@ -626,10 +626,10 @@ void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
     // first clear all the content inside this dir, use recursion
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (dir->i_block[i]) { // check has data, not points to 0
-            struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, dir->i_block[i]);
             int curr_pos = 0;
 
             while (curr_pos < EXT2_BLOCK_SIZE) {
+                struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, dir->i_block[i]);
                 struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode - 1]);
                 char *entry_path = combine_name(path, dir_entry);
 
