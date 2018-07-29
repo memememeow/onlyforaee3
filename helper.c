@@ -418,6 +418,7 @@ void zero_bitmap(unsigned char *block, int block_num) {
  * zero the block bitmap of given inode.
  */
 void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *path) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
 
@@ -445,6 +446,8 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *pa
         }
 
         zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
+        sb->s_free_blocks_count++;
+        gd->bg_free_blocks_count++;
         remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
 
