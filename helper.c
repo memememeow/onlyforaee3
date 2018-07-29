@@ -391,18 +391,18 @@ void zero_bitmap(unsigned char *block, int block_num) {
  * Clear all the entries in the blocks of given inode and
  * zero the block bitmap of given inode.
  */
-void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove, char *path) {
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
 
     // zero through the direct blocks
-    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+    for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (remove->i_block[i]) { // check has data, not points to 0
             clear_one_block(disk, remove->i_block[i]);
             zero_bitmap(block_bitmap, remove->i_block[i]);
-            remove->i_block[i] = 0; // points to "boot" block ????
-        }
+            remove->i_block[i] = 0; // points to "boot" block
 
+        }
 
         // zero through the single indirect block's blocks
         if (i == SINGLE_INDIRECT) {
@@ -422,6 +422,8 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
             remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
         }
     }
+
+    remove_name(disk, path);
 }
 
 /*
