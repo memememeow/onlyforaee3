@@ -156,6 +156,6 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
 void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path);
 
 /*
- * Get parent dir of a directory
+ * Get parent dir of a directory, exclude root dir.
  */
 char *get_dir_parent_path(char *path);
