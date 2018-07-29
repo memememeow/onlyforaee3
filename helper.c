@@ -621,12 +621,44 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
  * Remove the directory of given path.
  */
 void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
-    // first clear all the content inside this dir
+    // first clear all the content inside this dir, use recursion
+    // check through the direct blocks
+    for (int i = 0; i < SINGLE_INDIRECT + 1; i++) {
+        if (dir->i_block[i]) { // check has data, not points to 0
+            struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, dir->i_block[i]);
+
+            if ((dir_entry->file_type == EXT2_FT_REG_FILE)
+                || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
+                // get the file or link inode
+
+                // get the file or link path
+
+
+                remove_file_or_link(disk, struct ext2_inode *file_inode, entry_path);
+            } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
+                // get the directory inode
+
+                // get the directory path
+
+                remove_dir(disk, struct ext2_inode *dir_inode, entry_path);
+            }
+        }
+
+        // check through the single indirect block's blocks
+        if (i == SINGLE_INDIRECT && (remove == 0)) {
+            unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
+
+            for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
+                if (indirect[j]) {
+                    remove = remove_name_in_block(disk, file_name, indirect[j]);
+                }
+            }
+        }
+    }
 
     // then remove this dir (from its parent)
     char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
-
 
 }
 
@@ -652,4 +684,22 @@ char *get_dir_parent_path(char *path) {
     parent = strndup(full_path, strlen(full_path) - strlen(file_name) + 1);
 
     return parent;
+}
+
+/*
+ * Combine the parent path and the file/link/directory name.
+ */
+char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
+    char *full_path = malloc(sizeof(char) * (strlen(parent_path) + 1 + dir_entry->name_len + 1));
+
+    if (parent_path[strlen(parent_path) - 1] == '/') {
+        strncpy(full_path, parent_path, strlen(parent_path));
+        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
+    } else {
+        strncpy(full_path, parent_path, strlen(parent_path));
+        strncat(full_path, "/", 1);
+        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
+    }
+
+    return full_path;
 }
