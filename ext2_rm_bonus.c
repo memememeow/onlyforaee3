@@ -26,8 +26,9 @@ int main(int argc, char **argv) {
     // Get the inode of the given path
     struct ext2_inode *path_inode = trace_path(argv[2], disk);
 
-    // The file/lin do not exist
+    // The path do not exist
     if (path_inode == NULL) {
+        printf("The path %s do not exist.\n", argv[2]);
         return ENOENT;
     }
 

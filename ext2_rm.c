@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 
     // The file/lin do not exist
     if (path_inode == NULL) {
-        printf("The file or link do not exist.\n");
+        printf("The path %s do not exist.\n", argv[2]);
         return ENOENT;
     }
 
