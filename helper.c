@@ -643,6 +643,8 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
     int curr_pos = 0; // used to keep track of the dir entry in each block
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
+        // add \0 to the name
+        dir->name[dir->name_len] = '\0';
 
         if (strcmp(dir->name, ".") != 0
             || strcmp(dir->name, "..") != 0) {
