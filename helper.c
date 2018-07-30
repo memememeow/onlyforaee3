@@ -616,6 +616,8 @@ void remove_dir(unsigned char *disk, char *path) {
                 gd->bg_free_blocks_count++;
             }
         }
+
+        path_inode->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
 
     // get the parent directory
