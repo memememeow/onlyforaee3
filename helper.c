@@ -593,6 +593,8 @@ void remove_file_or_link(unsigned char *disk, char *path) {
 
     // Get the inode of a file/link which need to be removed
     if (path_inode->i_links_count > 1) {
+        // remove current file's name but keep the inode
+        remove_name(disk, path);
         // decrement links_count
         path_inode->i_links_count--;
 
