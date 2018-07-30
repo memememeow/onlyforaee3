@@ -122,7 +122,7 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
 /*
  * Clear all the entries in one block.
  */
-void clear_one_block(unsigned char *disk, int block_num);
+void clear_directory_content(unsigned char *disk, int block_num, char *path);
 
 /*
  * Zero the given inode from the inode bitmap
