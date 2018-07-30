@@ -632,7 +632,6 @@ void remove_dir(unsigned char *disk, char *path) {
     path_inode->i_dtime = (unsigned int) time(NULL);
     path_inode->i_size = 0;
     path_inode->i_blocks = 0;
-    path_inode->i_links_count = 2;
 }
 
 /*
