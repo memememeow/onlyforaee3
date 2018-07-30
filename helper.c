@@ -604,17 +604,12 @@ void remove_file_or_link(unsigned char *disk, char *path) {
         // clear and zero the inode bitmap
         clear_inode_bitmap(disk, path_inode);
 
-        // update the data in parent directory
-        char *parent_path = get_dir_parent_path(path);
-        struct ext2_inode *parent_dir = trace_path(parent_path, disk);
-        parent_dir->i_blocks -= path_inode->i_blocks;
         // remove current file's name but keep the inode
         remove_name(disk, path);
 
         // set delete time, in order to reuse inode
         path_inode->i_dtime = (unsigned int) time(NULL);
         path_inode->i_size = 0;
-        path_inode->i_blocks = 0;
     }
 }
 
