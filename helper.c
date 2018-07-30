@@ -449,34 +449,6 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 }
 
 /*
- * Clear all the entries in one block.
- */
-void clear_directory_content(unsigned char *disk, int block_num, char *path) {
-    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
-    struct ext2_dir_entry_2 *pre_dir = NULL;
-    int curr_pos = 0; // used to keep track of the dir entry in each block
-
-    while (curr_pos < EXT2_BLOCK_SIZE) {
-
-        if (strcmp(dir->name, ".") != 0
-            || strcmp(dir->name, "..") != 0) {
-            if ((dir->file_type & EXT2_FT_REG_FILE)
-                || (dir->file_type & EXT2_FT_SYMLINK)) {
-                remove_file_or_link(disk, path);
-            } else if (dir->file_type & EXT2_FT_DIR) {
-                remove_dir(disk, path);
-            }
-            pre_dir->rec_len += dir->rec_len;
-        }
-
-        /* Moving to the next directory */
-        curr_pos = curr_pos + dir->rec_len;
-        pre_dir = dir;
-        dir = (void*) dir + dir->rec_len;
-    }
-}
-
-/*
  * Zero the given inode from the inode bitmap.
  */
 void clear_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
@@ -659,6 +631,34 @@ void remove_dir(unsigned char *disk, char *path) {
     path_inode->i_size = 0;
     path_inode->i_blocks = 0;
     path_inode->i_links_count = 2;
+}
+
+/*
+ * Clear all the entries in one block.
+ */
+void clear_directory_content(unsigned char *disk, int block_num, char *path) {
+    struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
+    struct ext2_dir_entry_2 *pre_dir = NULL;
+    int curr_pos = 0; // used to keep track of the dir entry in each block
+
+    while (curr_pos < EXT2_BLOCK_SIZE) {
+
+        if (strcmp(dir->name, ".") != 0
+            || strcmp(dir->name, "..") != 0) {
+            if ((dir->file_type & EXT2_FT_REG_FILE)
+                || (dir->file_type & EXT2_FT_SYMLINK)) {
+                remove_file_or_link(disk, path);
+            } else if (dir->file_type & EXT2_FT_DIR) {
+                remove_dir(disk, path);
+            }
+            pre_dir->rec_len += dir->rec_len;
+        }
+
+        /* Moving to the next directory */
+        curr_pos = curr_pos + dir->rec_len;
+        pre_dir = dir;
+        dir = (void*) dir + dir->rec_len;
+    }
 }
 
 /*
