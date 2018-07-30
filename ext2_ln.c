@@ -176,12 +176,12 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
 
     int curr_pos = 0; // used to keep track of the dir entry in each block
     while (curr_pos < EXT2_BLOCK_SIZE) {
-        char *entry_name = malloc(sizeof(char) * dir->path_len + 1);
+        char *entry_name = malloc(sizeof(char) * dir->rec_len + 1);
 
-        for (int u = 0; u < dir->path_len; u++) {
+        for (int u = 0; u < dir->rec_len; u++) {
             entry_name[u] = dir->name[u];
         }
-        entry_name[dir->path_len] = '\0';
+        entry_name[dir->rec_len] = '\0';
 
         if (strcmp(entry_name, name) == 0) {
             target = &(inode_table[dir->inode - 1]);
@@ -280,7 +280,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
 
     unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
     int block_num;
-    int length = strlen(f_name) + sizeof(struct ext2_dir_entry_2 *);
+    int length = (int)(strlen(f_name) + sizeof(struct ext2_dir_entry_2 *));
     // int length = 1021;
     struct ext2_dir_entry_2 *dir = NULL;
     for (int k = 0; k < 12; k++) {
@@ -290,7 +290,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
           if (free_block_num == -1) { // No extra free blocks for new entry
             return -1;
           }
-          dir_inode->i_block[k] = free_block_num;
+          dir_inode->i_block[k] = (unsigned int)free_block_num;
           dir = (struct ext2_dir_entry_2 *)(disk + free_block_num * EXT2_BLOCK_SIZE);
           length = EXT2_BLOCK_SIZE;
           break;
@@ -302,7 +302,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
         /* Total size of the directories in a block cannot exceed a block size */
         while (curr_pos < EXT2_BLOCK_SIZE) {
             if ((curr_pos + dir->rec_len) == EXT2_BLOCK_SIZE) { // last block
-                int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->path_len;
+                int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->rec_len;
                 while (true_len % 4 != 0) {
                     true_len ++;
                 }
@@ -321,8 +321,8 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
         }
     }
     dir->inode = new_inode;
-    dir->path_len = (unsigned char) strlen(f_name);
-    memcpy(dir->name, f_name, dir->path_len);
+    dir->rec_len = (unsigned char) strlen(f_name);
+    memcpy(dir->name, f_name, dir->rec_len);
     if (type == 'd') {
         dir->file_type = EXT2_FT_DIR;
         dir_inode->i_links_count ++;
@@ -460,11 +460,11 @@ int main (int argc, char **argv) {
       int b_num;
       if (block_index < SINGLE_INDIRECT) {
         b_num = get_free_block(sb, b_bitmap);
-        tar_inode->i_block[block_index] = b_num;
+        tar_inode->i_block[block_index] = (unsigned int)b_num;
       } else {
         if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
           indirect_b = get_free_block(sb, b_bitmap);
-          tar_inode->i_block[SINGLE_INDIRECT] = indirect_b;
+          tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int)indirect_b;
           tar_inode->i_blocks += 2;
         }
         b_num = get_free_block(sb, b_bitmap);
