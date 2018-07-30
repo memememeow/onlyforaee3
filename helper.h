@@ -148,12 +148,12 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num);
 /*
  * Remove a file or link in the given path.
  */
-void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, char *path);
+void remove_file_or_link(unsigned char *disk, char *path);
 
 /*
  * Remove the directory of given path.
  */
-void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path);
+void remove_dir(unsigned char *disk, char *path);
 
 /*
  * Get parent dir of a directory, exclude root dir.

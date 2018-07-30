@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
         return EISDIR;
     }
 
-    remove_file_or_link(disk, path_inode, argv[2]);
+    remove_file_or_link(disk, argv[2]);
 
     return 0;
 }

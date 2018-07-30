@@ -417,6 +417,8 @@ void zero_bitmap(unsigned char *block, int block_num) {
 /*
  * Clear all the entries in the blocks of given inode and
  * zero the block bitmap of given inode.
+ *
+ * Clear the block bitmap of the given inode [remove].
  */
 void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
@@ -426,11 +428,12 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     // zero through the blocks on the first level
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (remove->i_block[i]) { // check has data, not points to 0
-
-            // zero through the blocks on the first level
-            clear_one_block(disk, remove->i_block[i]);
+            // clear_one_block(disk, remove->i_block[i]);
             zero_bitmap(block_bitmap, remove->i_block[i]);
             remove->i_block[i] = 0; // points to "boot" block
+
+            sb->s_free_blocks_count++;
+            gd->bg_free_blocks_count++;
         }
     }
 
@@ -440,46 +443,48 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
         for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
             if (indirect[j]) {
-                clear_one_block(disk, indirect[j]);
+                // clear_one_block(disk, indirect[j]);
                 zero_bitmap(block_bitmap, indirect[j]);
                 indirect[j] = 0; // each indirect block points to "boot" block
+
+                sb->s_free_blocks_count++;
+                gd->bg_free_blocks_count++;
             }
         }
-
         zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
+        remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
+
         sb->s_free_blocks_count++;
         gd->bg_free_blocks_count++;
-        remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
 }
 
 /*
  * Clear all the entries in one block.
  */
-void clear_one_block(unsigned char *disk, int block_num) {
-    struct ext2_super_block *sb = get_superblock_loc(disk);
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-
+void clear_directory_content(unsigned char *disk, int block_num, char *path) {
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
     struct ext2_dir_entry_2 *pre_dir = NULL;
     int curr_pos = 0; // used to keep track of the dir entry in each block
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
-        pre_dir = dir;
+
+        if (strcmp(dir->name, ".") != 0
+            || strcmp(dir->name, "..") != 0) {
+            if ((dir->file_type & EXT2_FT_REG_FILE)
+                || (dir->file_type & EXT2_FT_SYMLINK)) {
+                remove_file_or_link(disk, path);
+            } else if (dir->file_type & EXT2_FT_DIR) {
+                remove_dir(disk, path);
+            }
+            pre_dir->rec_len += dir->rec_len;
+        }
 
         /* Moving to the next directory */
         curr_pos = curr_pos + dir->rec_len;
+        pre_dir = dir;
         dir = (void*) dir + dir->rec_len;
-
-        pre_dir->rec_len = 0;
-        for (int i = 0; i < pre_dir->name_len; i++) {
-            pre_dir->name[i] = '\0';
-        }
-        pre_dir->name_len = 0;
     }
-
-    sb->s_free_blocks_count++;
-    gd->bg_free_blocks_count++;
 }
 
 /*
@@ -594,7 +599,9 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
 /*
  * Remove a file or link in the given path.
  */
-void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, char *path) {
+void remove_file_or_link(unsigned char *disk, char *path) {
+    struct ext2_inode *path_inode = trace_path(path, disk);
+
     // Get the inode of a file/link which need to be removed
     if (path_inode->i_links_count > 1) {
         // decrement links_count
@@ -606,98 +613,66 @@ void remove_file_or_link(unsigned char *disk, struct ext2_inode *path_inode, cha
         // clear and zero the inode bitmap
         clear_inode_bitmap(disk, path_inode);
 
+        // update the data in parent directory
+        char *parent_path = get_dir_parent_path(path);
+        struct ext2_inode *parent_dir = trace_path(parent_path, disk);
+        parent_dir->i_blocks -= path_inode->i_blocks;
+        // remove current file's name but keep the inode
+        remove_name(disk, path);
+
         // set delete time, in order to reuse inode
         path_inode->i_dtime = (unsigned int) time(NULL);
         path_inode->i_size = 0;
         path_inode->i_blocks = 0;
     }
-
-    // remove current file's name but keep the inode
-    remove_name(disk, path);
 }
 
 /*
  * Remove the directory of given path.
  */
-void remove_dir(unsigned char *disk, struct ext2_inode *dir, char *path) {
+void remove_dir(unsigned char *disk, char *path) {
+    struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode *path_inode = trace_path(path, disk);
 
-    // first clear all the content inside this dir, use recursion
+    // remove all the contents inside the dir, avoid . and ..
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
-        if (dir->i_block[i]) { // check has data, not points to 0
-            struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, dir->i_block[i]);
-            int curr_pos = 0;
+        if (path_inode->i_block[i]) { // has data in the block
+            clear_directory_content(disk, path_inode->i_block[i], path);
+            path_inode->i_block[i] = 0; // points to "boot" block
 
-            while (curr_pos < EXT2_BLOCK_SIZE) {
-                struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode - 1]);
-
-                if ((strcmp(dir_entry->name, ".") != 0)
-                    || (strcmp(dir_entry->name, "..") != 0)) {
-                    char *entry_path = combine_name(path, dir_entry);
-
-                    if ((dir_entry->file_type == EXT2_FT_REG_FILE)
-                        || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
-                        remove_file_or_link(disk, entry_inode, entry_path);
-                    } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
-                        remove_dir(disk, entry_inode, entry_path);
-                    }
-                }
-
-                /* Moving to the next directory */
-                curr_pos = curr_pos + dir_entry->rec_len;
-                dir_entry = (void*) dir_entry + dir_entry->rec_len;
-            }
+            sb->s_free_blocks_count++;
+            gd->bg_free_blocks_count++;
         }
     }
 
-    // check through the single indirect block's blocks
-    if (dir->i_block[SINGLE_INDIRECT]) {
-        unsigned int *indirect = get_indirect_block_loc(disk, dir);
+    if (path_inode->i_block[SINGLE_INDIRECT]) {
+        unsigned int *indirect = get_indirect_block_loc(disk, path_inode);
 
         for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
             if (indirect[j]) {
-                struct ext2_dir_entry_2 *dir_entry = get_dir_entry(disk, indirect[j]);
-                int curr_pos = 0;
+                clear_directory_content(disk, indirect[j], path);
+                indirect[j] = 0; // points to "boot" block
 
-                while (curr_pos < EXT2_BLOCK_SIZE) {
-                    struct ext2_inode *entry_inode = &(inode_table[dir_entry->inode - 1]);
-
-                    if ((strcmp(dir_entry->name, ".") != 0)
-                        || (strcmp(dir_entry->name, "..") != 0)) {
-                        char *entry_path = combine_name(path, dir_entry);
-
-                        if ((dir_entry->file_type == EXT2_FT_REG_FILE)
-                            || (dir_entry->file_type == EXT2_FT_SYMLINK)) { // file or link
-                            remove_file_or_link(disk, entry_inode, entry_path);
-                        } else if (dir_entry->file_type == EXT2_FT_DIR) { // directory
-                            remove_dir(disk, entry_inode, entry_path);
-                        }
-                    }
-
-                    /* Moving to the next directory */
-                    curr_pos = curr_pos + dir_entry->rec_len;
-                    dir_entry = (void*) dir_entry + dir_entry->rec_len;
-                }
+                sb->s_free_blocks_count++;
+                gd->bg_free_blocks_count++;
             }
         }
     }
 
-    // then update some parameters and bitmaps
+    // get the parent directory
     char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
     parent_dir->i_links_count--;
-
-    clear_block_bitmap(disk, dir);
-    clear_inode_bitmap(disk, dir);
-
-    // set delete time in order to reuse inode
-    dir->i_dtime = (unsigned int) time(NULL);
-    dir->i_size = 0;
-    dir->i_blocks = 0;
-
-    // last remove this dir from its parent
+    parent_dir->i_blocks-=path_inode->i_blocks;
+    // remove current directory's name but keep the inode
     remove_name(disk, path);
+
+    // update the field of removed dir inode
+    path_inode->i_dtime = (unsigned int) time(NULL);
+    path_inode->i_size = 0;
+    path_inode->i_blocks = 0;
+    path_inode->i_links_count = 2;
 }
 
 /*
@@ -722,23 +697,4 @@ char *get_dir_parent_path(char *path) {
     parent = strndup(full_path, strlen(full_path) - strlen(file_name) + 1);
 
     return parent;
-}
-
-/*
- * Combine the parent path and the file/link/directory name.
- * Example: /a/bb (or /a/bb/) and ccc outputs /a/bb/ccc
- */
-char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
-    char *full_path = malloc(sizeof(char) * (strlen(parent_path) + 1 + dir_entry->name_len + 1));
-
-    if (parent_path[strlen(parent_path) - 1] == '/') {
-        strncpy(full_path, parent_path, strlen(parent_path) + 1);
-        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
-    } else {
-        strncpy(full_path, parent_path, strlen(parent_path) + 1);
-        strncat(full_path, "/", 2);
-        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
-    }
-
-    return full_path;
 }
