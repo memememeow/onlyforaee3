@@ -39,9 +39,9 @@ int main(int argc, char **argv) {
 
     // Is a file or link
     if ((path_inode->i_mode & EXT2_S_IFREG) || (path_inode->i_mode & EXT2_S_IFLNK)) {
-        remove_file_or_link(disk, path_inode, argv[2]);
+        remove_file_or_link(disk, argv[2]);
     } else if (path_inode->i_mode & EXT2_S_IFDIR) { // Is a directory
-        remove_dir(disk, path_inode, argv[2]);
+        remove_dir(disk, argv[2]);
     }
 
     return 0;
