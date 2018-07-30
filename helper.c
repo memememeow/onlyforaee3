@@ -332,7 +332,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
 
     unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
     int block_num;
-    int length = strlen(f_name) + sizeof(struct ext2_dir_entry_2 *);
+    int length = (int)(strlen(f_name) + sizeof(struct ext2_dir_entry_2 *));
     // int length = 1021;
     struct ext2_dir_entry_2 *dir = NULL;
     for (int k = 0; k < 12; k++) {
@@ -342,7 +342,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
           if (free_block_num == -1) { // No extra free blocks for new entry
             return -1;
           }
-          dir_inode->i_block[k] = free_block_num;
+          dir_inode->i_block[k] = (unsigned int)free_block_num;
           dir = (struct ext2_dir_entry_2 *)(disk + free_block_num * EXT2_BLOCK_SIZE);
           length = EXT2_BLOCK_SIZE;
           break;
@@ -354,7 +354,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
         /* Total size of the directories in a block cannot exceed a block size */
         while (curr_pos < EXT2_BLOCK_SIZE) {
             if ((curr_pos + dir->rec_len) == EXT2_BLOCK_SIZE) { // last block
-                int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->path_len;
+                int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->rec_len;
                 while (true_len % 4 != 0) {
                     true_len ++;
                 }
@@ -373,8 +373,8 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
         }
     }
     dir->inode = new_inode;
-    dir->path_len = (unsigned char) strlen(f_name);
-    memcpy(dir->name, f_name, dir->path_len);
+    dir->rec_len = (unsigned char) strlen(f_name);
+    memcpy(dir->name, f_name, dir->rec_len);
     if (type == 'd') {
         dir->file_type = EXT2_FT_DIR;
         dir_inode->i_links_count ++;
@@ -686,27 +686,5 @@ char *get_dir_parent_path(char *path) {
     parent = strndup(full_path, strlen(full_path) - strlen(file_name) + 1);
 
     return parent;
-<<<<<<< HEAD
 }
 
-/*
- * Combine the parent path and the file/link/directory name.
- * Example: /a/bb (or /a/bb/) and ccc outputs /a/bb/ccc
- */
-char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
-    char *full_path = malloc(sizeof(char) * (strlen(parent_path) + 1 + dir_entry->name_len + 1));
-
-    if (parent_path[strlen(parent_path) - 1] == '/') {
-        strncpy(full_path, parent_path, strlen(parent_path) + 1);
-        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
-    } else {
-        strncpy(full_path, parent_path, strlen(parent_path) + 1);
-        strncat(full_path, "/", 2);
-        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
-    }
-
-    return full_path;
-}
-=======
-}
->>>>>>> 4f35ef9d0b294302b951de93e6cd3d433ad69703

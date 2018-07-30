@@ -106,7 +106,7 @@ struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char 
 /*
  * Add new entry into the directory.
  */
-int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, struct ext2_dir_entry_2 *new_entry);
+int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type);
 
 /*
  * Zero block [inode / block] bitmap of given block number.
@@ -160,7 +160,3 @@ void remove_dir(unsigned char *disk, char *path);
  */
 char *get_dir_parent_path(char *path);
 
-/*
- * Combine the parent path and the file/link/directory name.
- */
-char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry);
