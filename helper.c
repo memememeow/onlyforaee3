@@ -620,6 +620,11 @@ void remove_dir(unsigned char *disk, char *path) {
         path_inode->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
 
+    // clear and zero the block bitmap
+    clear_block_bitmap(disk, path_inode);
+    // clear and zero the inode bitmap
+    clear_inode_bitmap(disk, path_inode);
+
     // get the parent directory
     char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
