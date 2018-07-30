@@ -647,7 +647,7 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
         dir->name[dir->name_len] = '\0';
 
         if (strcmp(dir->name, ".") != 0
-            || strcmp(dir->name, "..") != 0) {
+            && strcmp(dir->name, "..") != 0) {
             if ((dir->file_type & EXT2_FT_REG_FILE)
                 || (dir->file_type & EXT2_FT_SYMLINK)) {
                 remove_file_or_link(disk, path);
