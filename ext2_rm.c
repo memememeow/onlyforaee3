@@ -28,11 +28,13 @@ int main(int argc, char **argv) {
 
     // The file/lin do not exist
     if (path_inode == NULL) {
+        printf("The file or link do not exist.\n");
         return ENOENT;
     }
 
     // Is a directory
     if (path_inode->i_mode & EXT2_S_IFDIR) {
+        printf("The path %s is a directory.\n", argv[2]);
         return EISDIR;
     }
 
