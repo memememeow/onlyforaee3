@@ -590,16 +590,16 @@ void remove_file_or_link(unsigned char *disk, char *path) {
 void remove_dir(unsigned char *disk, char *path) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
     struct ext2_inode *path_inode = trace_path(path, disk);
+
+    int block_num = path_inode->i_block[0];
 
     // remove all the contents inside the dir, avoid . and ..
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (path_inode->i_block[i]) { // has data in the block
             clear_directory_content(disk, path_inode->i_block[i], path);
-            path_inode->i_block[i] = 0; // points to "boot" block
-
-            sb->s_free_blocks_count++;
-            gd->bg_free_blocks_count++;
+            block_num = path_inode->i_block[i];
         }
     }
 
@@ -609,17 +609,15 @@ void remove_dir(unsigned char *disk, char *path) {
         for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
             if (indirect[j]) {
                 clear_directory_content(disk, indirect[j], path);
-                indirect[j] = 0; // points to "boot" block
-
-                sb->s_free_blocks_count++;
-                gd->bg_free_blocks_count++;
+                block_num = indirect[j];
             }
         }
     }
 
-    // clear and zero the block bitmap
-    clear_block_bitmap(disk, path_inode);
-    // clear and zero the inode bitmap
+    // zero the block bitmap and inode bitmap
+    zero_bitmap(block_bitmap, block_num);
+    sb->s_free_blocks_count++;
+    gd->bg_free_blocks_count++;
     clear_inode_bitmap(disk, path_inode);
 
     // get the parent directory
@@ -632,6 +630,7 @@ void remove_dir(unsigned char *disk, char *path) {
     gd->bg_used_dirs_count--;
 
     // update the field of removed dir inode
+    path_inode->i_block[block_num] = 0;
     path_inode->i_dtime = (unsigned int) time(NULL);
     path_inode->i_size = 0;
     path_inode->i_blocks = 0;
