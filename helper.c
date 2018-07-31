@@ -651,11 +651,11 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
 
         if (strcmp(dir->name, ".") != 0
             && strcmp(dir->name, "..") != 0) {
-            if ((dir->file_type & EXT2_FT_REG_FILE)
-                || (dir->file_type & EXT2_FT_SYMLINK)) {
-                remove_file_or_link(disk, path);
-            } else if (dir->file_type & EXT2_FT_DIR) {
-                remove_dir(disk, path);
+            if ((dir->file_type == EXT2_FT_REG_FILE)
+                || (dir->file_type == EXT2_FT_SYMLINK)) {
+                remove_file_or_link(disk, combine_name(path, dir));
+            } else if (dir->file_type == EXT2_FT_DIR) {
+                remove_dir(disk, combine_name(path, dir));
             }
             pre_dir->rec_len += dir->rec_len;
         }
@@ -689,5 +689,24 @@ char *get_dir_parent_path(char *path) {
     parent = strndup(full_path, strlen(full_path) - strlen(file_name) + 1);
 
     return parent;
+}
+
+/*
+ * Combine the parent path and the file/link/directory name.
+ * Example: /a/bb (or /a/bb/) and ccc outputs /a/bb/ccc
+ */
+char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
+    char *full_path = malloc(sizeof(char) * (strlen(parent_path) + 1 + dir_entry->name_len + 1));
+
+    if (parent_path[strlen(parent_path) - 1] == '/') {
+        strncpy(full_path, parent_path, strlen(parent_path) + 1);
+        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
+    } else {
+        strncpy(full_path, parent_path, strlen(parent_path) + 1);
+        strncat(full_path, "/", 2);
+        strncat(full_path, dir_entry->name, dir_entry->name_len + 1);
+    }
+
+    return full_path;
 }
 
