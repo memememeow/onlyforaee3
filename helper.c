@@ -646,11 +646,12 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
     int curr_pos = 0; // used to keep track of the dir entry in each block
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
-        // add \0 to the name
         dir->name[dir->name_len] = '\0';
+        int rec_len = dir->rec_len;
 
         if (strcmp(dir->name, ".") != 0
             && strcmp(dir->name, "..") != 0) {
+            rec_len = dir->rec_len;
             if ((dir->file_type == EXT2_FT_REG_FILE)
                 || (dir->file_type == EXT2_FT_SYMLINK)) {
                 remove_file_or_link(disk, combine_name(path, dir));
@@ -661,9 +662,9 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
         }
 
         /* Moving to the next directory */
-        curr_pos = curr_pos + dir->rec_len;
+        curr_pos = curr_pos + rec_len;
         pre_dir = dir;
-        dir = (void*) dir + dir->rec_len;
+        dir = (void*) dir + rec_len;
     }
 }
 
