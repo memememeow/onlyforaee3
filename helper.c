@@ -441,7 +441,6 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
             }
         }
         zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
-        remove->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
 
         sb->s_free_blocks_count++;
         gd->bg_free_blocks_count++;
@@ -616,8 +615,6 @@ void remove_dir(unsigned char *disk, char *path) {
                 gd->bg_free_blocks_count++;
             }
         }
-
-        path_inode->i_block[SINGLE_INDIRECT] = 0; // points to "boot" block
     }
 
     // clear and zero the block bitmap
