@@ -632,6 +632,7 @@ void remove_dir(unsigned char *disk, char *path) {
     parent_dir->i_blocks-=path_inode->i_blocks;
     // remove current directory's name but keep the inode
     remove_name(disk, path);
+    gd->bg_used_dirs_count--;
 
     // update the field of removed dir inode
     path_inode->i_dtime = (unsigned int) time(NULL);
