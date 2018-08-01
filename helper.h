@@ -4,6 +4,7 @@
 #include "ext2.h"
 
 #define SINGLE_INDIRECT 12
+#define NUM_BLOCKS 2
 
 /*
  * Return the disk location.
