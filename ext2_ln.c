@@ -113,31 +113,33 @@ char *get_file_name(char *path) {
  * If path is /a/bb/ccc function will give /a/bb/
  */
 char *get_dir_path(char *path) {
-  char *file_name = NULL;
-  char *parent = NULL;
-  file_name = strrchr(path, '/');
-  parent = strndup(path, strlen(path) - strlen(file_name) + 1);
-  return parent;
+    char *file_name = NULL;
+    char *parent = NULL;
+    file_name = strrchr(path, '/');
+    parent = strndup(path, strlen(path) - strlen(file_name) + 1);
+    return parent;
 }
 
 /*
  * Return the first inode number that is free.
  */
-int get_free_inode(struct ext2_super_block *sb, struct ext2_group_desc *gd, unsigned char *inode_bitmap) {
+int get_free_inode(unsigned char *disk, unsigned char *inode_bitmap) {
     // Loop over the inodes that are not reserved, index i
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_super_block *sb = get_superblock_loc(disk);
     for (int i = EXT2_GOOD_OLD_FIRST_INO; i < sb->s_inodes_count; i++) {
         int bitmap_byte = i / 8;
         int bit_order = i % 8;
         if (!(1 & (inode_bitmap[bitmap_byte] >> bit_order))) {
-          // Such bit is 0, which is a free inode
-          if ((i + 1) % 8 == 0) {
-            inode_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
-          } else {
-            inode_bitmap[(i + 1) / 8] |= 1 << bit_order;
-          }
-          sb->s_free_inodes_count --;
-          gd->bg_free_inodes_count --;
-          return i + 1;
+            // Such bit is 0, which is a free inode
+            if ((i + 1) % 8 == 0) {
+                inode_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
+            } else {
+                inode_bitmap[(i + 1) / 8] |= 1 << bit_order;
+            }
+            sb->s_free_inodes_count --;
+            gd->bg_free_inodes_count --;
+            return i + 1;
         }
     }
 
@@ -147,17 +149,19 @@ int get_free_inode(struct ext2_super_block *sb, struct ext2_group_desc *gd, unsi
 /*
  * Return the first block number that is free.
  */
-int get_free_block(struct ext2_super_block *sb, struct ext2_group_desc *gd, unsigned char *block_bitmap) {
+int get_free_block(unsigned char *disk, unsigned char *block_bitmap) {
     // Loop over the inodes that are not reserved
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_super_block *sb = get_superblock_loc(disk);
     for (int i = 0; i < sb->s_blocks_count; i++) {
         int bitmap_byte = i / 8;
         int bit_order = i % 8;
         if (!(1 & (block_bitmap[bitmap_byte] >> bit_order))) {
             // Such bit is 0, which is a free block
             if ((i + 1) % 8 == 0) {
-              block_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
+                block_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
             } else {
-              block_bitmap[(i + 1) / 8] |= 1 << bit_order;
+                block_bitmap[(i + 1) / 8] |= 1 << bit_order;
             }
             sb->s_free_blocks_count --;
             gd->bg_free_blocks_count --;
@@ -277,28 +281,24 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
  */
 int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type) {
     // Recalls that there are 12 direct blocks.
-    // Find group descriptor.
-    struct ext2_group_desc *gd = (struct ext2_group_desc *)(disk + 2 * EXT2_BLOCK_SIZE);
-
-    // Find super block of the disk.
-    struct ext2_super_block *sb = (struct ext2_super_block *)(disk + EXT2_BLOCK_SIZE);
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
 
     unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
     int block_num;
-    int length = strlen(f_name) + sizeof(struct ext2_dir_entry_2 *);
+    int length = (int)(strlen(f_name) + sizeof(struct ext2_dir_entry_2 *));
     // int length = 1021;
     struct ext2_dir_entry_2 *dir = NULL;
     for (int k = 0; k < 12; k++) {
         // If the block does not exist yet i.e. block number = 0
         if ((block_num = dir_inode->i_block[k]) == 0) {
-          int free_block_num = get_free_block(sb, gd, b_bitmap);
-          if (free_block_num == -1) { // No extra free blocks for new entry
-            return -1;
-          }
-          dir_inode->i_block[k] = free_block_num;
-          dir = get_dir_entry(disk, free_block_num);
-          length = EXT2_BLOCK_SIZE;
-          break;
+            int free_block_num = get_free_block(disk, b_bitmap);
+            if (free_block_num == -1) { // No extra free blocks for new entry
+                return -1;
+            }
+            dir_inode->i_block[k] = (unsigned int)free_block_num;
+            dir = get_dir_entry(disk, free_block_num);
+            length = EXT2_BLOCK_SIZE;
+            break;
         }
 
         dir = get_dir_entry(disk, block_num);
@@ -306,19 +306,17 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
 
         /* Total size of the directories in a block cannot exceed a block size */
         while (curr_pos < EXT2_BLOCK_SIZE) {
-            if ((curr_pos + dir->rec_len) == EXT2_BLOCK_SIZE) { // last block
-                int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->name_len;
-                while (true_len % 4 != 0) {
-                    true_len ++;
-                }
-                if ((dir->rec_len - true_len) >= length) {
-                    dir->rec_len = (unsigned char) true_len;
-                    curr_pos = curr_pos + dir->rec_len;
-                    dir = (void *) dir + dir->rec_len;
-                    length = EXT2_BLOCK_SIZE - curr_pos;
-                    k = 12; // also terminate the for loop
-                    break;
-                }
+            int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->name_len;
+            while (true_len % 4 != 0) {
+                true_len ++;
+            }
+            if ((dir->rec_len - true_len) >= length) {
+                dir->rec_len = (unsigned char) true_len;
+                curr_pos = curr_pos + dir->rec_len;
+                dir = (void *) dir + dir->rec_len;
+                length = EXT2_BLOCK_SIZE - curr_pos;
+                k = 12; // also terminate the for loop
+                break;
             }
             // Moving to the next directory
             curr_pos = curr_pos + dir->rec_len;
@@ -326,7 +324,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
         }
     }
     if (dir == NULL) {
-      return -1;
+        return -1;
     }
     dir->inode = new_inode;
     dir->name_len = (unsigned char) strlen(f_name);
@@ -370,152 +368,153 @@ int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
  * path.
  */
 int main (int argc, char **argv) {
-  // printf("%s\n", argv[2]);
-  // printf("%s\n", argv[3]);
-  // printf("%s\n", argv[4]);
+    // printf("%s\n", argv[2]);
+    // printf("%s\n", argv[3]);
+    // printf("%s\n", argv[4]);
 
-  // Check valid command line arguments
-  if (argc != 4 && argc != 5) {
-    printf("Usage: ext2_ls <virtual_disk> <source_file> <target_file> <-s>\n");
-    exit(1);
-  } else if (argc == 5 && strcmp(argv[4], "-s") != 0) {
-    printf("Usage: ext2_ls <virtual_disk> <source_file> <target_file> <-s>\n");
-    exit(1);
-  }
-
-  // Check valid disk
-  // Open the disk image file.
-  unsigned char *disk = get_disk_loc(argv[1]);
-  printf("Disk open\n");
-
-  // Find group descriptor.
-  struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-
-  // Find super block of the disk.
-  struct ext2_super_block *sb = get_superblock_loc(disk);
-
-  unsigned char *i_bitmap = get_inode_bitmap_loc(disk, gd);
-  unsigned char *b_bitmap = get_block_bitmap_loc(disk, gd);
-
-  // Inode table
-  struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
-  printf("I node\n");
-
-  char *dir_path = get_dir_path(argv[3]); // for target file
-  struct ext2_inode *source_inode = trace_path(argv[2], disk);
-  struct ext2_inode *target_inode = trace_path(argv[3], disk);
-  struct ext2_inode *dir_inode = trace_path(dir_path, disk);
-  printf("Get to trace path\n");
-
-  // If source file does not exist -> ENOENT
-  if (source_inode == NULL) {
-    printf("%s :Invalid path.\n", argv[2]);
-    return ENOENT;
-  }
-  printf("Here\n");
-
-  // If target file exist -> EEXIST
-  if (target_inode != NULL) {
-    printf("If target file exist -> EEXIST\n");
-    if (target_inode->i_mode & EXT2_S_IFDIR) {
-      printf("If dir\n");
-      printf("%s :Path provided is a directory.\n", argv[3]);
-      return EISDIR;
-    }
-    printf("No matter what\n");
-    printf("%s :File already exist.\n", argv[3]);
-    return EEXIST;
-  }
-
-  // Directory of target file DNE
-  if (dir_inode == NULL) {
-    printf("%s :Invalid path.\n", dir_path);
-    return ENOENT;
-  }
-
-  // If source file path is a directory -> EISDIR
-  if (source_inode->i_mode & EXT2_S_IFDIR) {
-    return EISDIR;
-  }
-
-  int target_inode_num = -1;
-  const char *source_path = (const char *)argv[2];
-  char *target_name = get_file_name(argv[3]);
-  if (strlen(target_name) > EXT2_NAME_LEN) {
-    printf("Target file with name too long: %s\n", target_name);
-    return ENOENT;
-  }
-  int path_len = strlen(source_path);
-  int blocks_needed = path_len / EXT2_BLOCK_SIZE + (path_len % EXT2_BLOCK_SIZE != 0);
-
-  if (argc == 5) { // Create soft link
-    // Check if we have enough space for path if symbolic link is created
-    if ((blocks_needed <= 12 && sb->s_free_blocks_count < blocks_needed) ||
-        (blocks_needed > 12 && sb->s_free_blocks_count < blocks_needed + 1)) {
-      printf("File system does not have enough free blocks.\n");
-      return ENOSPC;
+    // Check valid command line arguments
+    if (argc != 4 && argc != 5) {
+        printf("Usage: ext2_ln <virtual_disk> <source_file> <target_file> <-s>\n");
+        exit(1);
+    } else if (argc == 5 && strcmp(argv[4], "-s") != 0) {
+        printf("Usage: ext2_ln <virtual_disk> <source_file> <target_file> <-s>\n");
+        exit(1);
     }
 
-    if ((target_inode_num = get_free_inode(sb, gd, i_bitmap)) == -1) {
-      printf("File system does not have enough free inodes.\n");
-      return ENOSPC;
+    // Check valid disk
+    // Open the disk image file.
+    unsigned char *disk = get_disk_loc(argv[1]);
+    printf("Disk open\n");
+
+    // Find group descriptor.
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+
+    // Find super block of the disk.
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+
+    unsigned char *i_bitmap = get_inode_bitmap_loc(disk, gd);
+    unsigned char *b_bitmap = get_block_bitmap_loc(disk, gd);
+
+    // Inode table
+    struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
+    printf("I node\n");
+
+    char *dir_path = get_dir_path(argv[3]); // for target file
+    struct ext2_inode *source_inode = trace_path(argv[2], disk);
+    struct ext2_inode *target_inode = trace_path(argv[3], disk);
+    struct ext2_inode *dir_inode = trace_path(dir_path, disk);
+    printf("Get to trace path\n");
+
+    // If source file does not exist -> ENOENT
+    if (source_inode == NULL) {
+        printf("%s :Invalid path.\n", argv[2]);
+        return ENOENT;
     }
+    printf("Here\n");
 
-    struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
-
-    // Init the inode
-    tar_inode->i_mode = EXT2_S_IFLNK;
-    tar_inode->i_size = path_len;
-    tar_inode->i_links_count = 1;
-    tar_inode->i_blocks = 0;
-
-    // Write path into target file
-    int block_index = 0;
-    int indirect_b = -1;
-
-    while (block_index * EXT2_BLOCK_SIZE < path_len) {
-      int b_num;
-      if (block_index < SINGLE_INDIRECT) {
-        b_num = get_free_block(sb, gd, b_bitmap);
-        tar_inode->i_block[block_index] = b_num;
-      } else {
-        if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
-          indirect_b = get_free_block(sb, gd, b_bitmap);
-          tar_inode->i_block[SINGLE_INDIRECT] = indirect_b;
-          tar_inode->i_blocks += 2;
+    // If target file exist -> EEXIST
+    if (target_inode != NULL) {
+        printf("If target file exist -> EEXIST\n");
+        if (target_inode->i_mode & EXT2_S_IFDIR) {
+            printf("If dir\n");
+            printf("%s :Path provided is a directory.\n", argv[3]);
+            return EISDIR;
         }
-        b_num = get_free_block(sb, gd, b_bitmap);
-        unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
-        indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int)b_num;
-      }
-      unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
-      // printf("%c\n", source_path[block_index * EXT2_BLOCK_SIZE]);
-      strncpy((char *)block, &source_path[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
-      tar_inode->i_blocks += 2;
-      block_index++;
-    }
-    // Debug only
-    if (tar_inode->i_blocks / 2 != blocks_needed) {
-      printf("Something wrong when write path into blocks!!!!!\n");
+        printf("No matter what\n");
+        printf("%s :File already exist.\n", argv[3]);
+        return EEXIST;
     }
 
-    printf("target_inode_num is :%d\n", target_inode_num);
-    if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'l') == -1) {
-      printf("Fail to add new directory entry in directory: %s\n", dir_path);
-      exit(0);
+    // Directory of target file DNE
+    if (dir_inode == NULL) {
+        printf("%s :Invalid path.\n", dir_path);
+        return ENOENT;
     }
 
-  } else {
-    target_inode_num = get_inode_num(disk, source_inode);
-    printf("target_inode_num is :%d\n", target_inode_num);
-    // struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
-    source_inode->i_links_count++;
-
-    if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'f') == -1) {
-      printf("Fail to add new directory entry in directory: %s\n", dir_path);
-      exit(0);
+    // If source file path is a directory -> EISDIR
+    if (source_inode->i_mode & EXT2_S_IFDIR) {
+        return EISDIR;
     }
-  }
 
-  return 0;
+    int target_inode_num = -1;
+    const char *source_path = (const char *)argv[2];
+    char *target_name = get_file_name(argv[3]);
+    if (strlen(target_name) > EXT2_NAME_LEN) {
+        printf("Target file with name too long: %s\n", target_name);
+        return ENOENT;
+    }
+    int path_len = (int)strlen(source_path);
+    int blocks_needed = path_len / EXT2_BLOCK_SIZE + (path_len % EXT2_BLOCK_SIZE != 0);
+
+    if (argc == 5) { // Create soft link
+        // Check if we have enough space for path if symbolic link is created
+        if ((blocks_needed <= 12 && sb->s_free_blocks_count < blocks_needed) ||
+            (blocks_needed > 12 && sb->s_free_blocks_count < blocks_needed + 1)) {
+            printf("File system does not have enough free blocks.\n");
+            return ENOSPC;
+        }
+
+        if ((target_inode_num = get_free_inode(disk, i_bitmap)) == -1) {
+            printf("File system does not have enough free inodes.\n");
+            return ENOSPC;
+        }
+
+        struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
+
+        // Init the inode
+        tar_inode->i_mode = EXT2_S_IFLNK;
+        tar_inode->i_size = (unsigned int)path_len;
+        tar_inode->i_links_count = 1;
+        tar_inode->i_blocks = 0;
+
+        // Write path into target file
+        int block_index = 0;
+        int indirect_b = -1;
+
+        while (block_index * EXT2_BLOCK_SIZE < path_len) {
+            int b_num;
+            if (block_index < SINGLE_INDIRECT) {
+                b_num = get_free_block(disk, b_bitmap);
+                tar_inode->i_block[block_index] = (unsigned int)b_num;
+            } else {
+                if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
+                    indirect_b = get_free_block(disk, b_bitmap);
+                    tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int)indirect_b;
+                    tar_inode->i_blocks += 2;
+                }
+                b_num = get_free_block(disk, b_bitmap);
+                unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
+                indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int)b_num;
+            }
+            unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
+            // printf("%c\n", source_path[block_index * EXT2_BLOCK_SIZE]);
+            strncpy((char *)block, &source_path[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
+            tar_inode->i_blocks += 2;
+            block_index++;
+        }
+
+        // Debug only
+        if (tar_inode->i_blocks / 2 != blocks_needed) {
+            printf("Something wrong when write path into blocks!!!!!\n");
+        }
+
+        printf("target_inode_num is :%d\n", target_inode_num);
+        if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'l') == -1) {
+            printf("Fail to add new directory entry in directory: %s\n", dir_path);
+            exit(0);
+        }
+
+    } else {
+        target_inode_num = get_inode_num(disk, source_inode);
+        printf("target_inode_num is :%d\n", target_inode_num);
+        // struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
+        source_inode->i_links_count++;
+
+        if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'f') == -1) {
+            printf("Fail to add new directory entry in directory: %s\n", dir_path);
+            exit(0);
+        }
+    }
+
+    return 0;
 }
