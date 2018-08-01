@@ -89,16 +89,6 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
 struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block_num);
 
 /*
- * Print all the entries of a given directory.
- */
-void print_entries(unsigned char *disk, struct ext2_inode *dir, char *flag);
-
-/*
- * Print the entries in one block
- */
-void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag);
-
-/*
  * Create a new directory entry for the new enter file, link or directory.
  */
 struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char type);
@@ -118,11 +108,6 @@ void zero_bitmap(unsigned char *block, int block_num);
  * zero the block bitmap of given inode.
  */
 void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove);
-
-/*
- * Clear all the entries in one block.
- */
-void clear_directory_content(unsigned char *disk, int block_num, char *path);
 
 /*
  * Zero the given inode from the inode bitmap
@@ -149,11 +134,6 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num);
  * Remove a file or link in the given path.
  */
 void remove_file_or_link(unsigned char *disk, char *path);
-
-/*
- * Remove the directory of given path.
- */
-void remove_dir(unsigned char *disk, char *path);
 
 /*
  * Get parent dir of a directory, exclude root dir.
