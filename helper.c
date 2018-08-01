@@ -11,6 +11,7 @@
 #include "helper.h"
 
 #define SINGLE_INDIRECT 12
+#define NUM_BLOCKS 2
 
 /*
  * Return the disk location.
@@ -243,7 +244,8 @@ void zero_bitmap(unsigned char *block, int block_num) {
  *
  * Clear the block bitmap of the given inode [remove].
  */
-void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
+void clear_block_bitmap(unsigned char *disk, char *path) {
+    struct ext2_inode *remove = trace_path(path, disk);
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     unsigned char *block_bitmap = get_block_bitmap_loc(disk);
@@ -257,6 +259,8 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
             sb->s_free_blocks_count++;
             gd->bg_free_blocks_count++;
+
+            remove->i_blocks -= NUM_BLOCKS;
         }
     }
 
@@ -272,12 +276,16 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 
                 sb->s_free_blocks_count++;
                 gd->bg_free_blocks_count++;
+
+                remove->i_blocks -= NUM_BLOCKS;
             }
         }
         zero_bitmap(block_bitmap, remove->i_block[SINGLE_INDIRECT]);
 
         sb->s_free_blocks_count++;
         gd->bg_free_blocks_count++;
+
+        remove->i_blocks -= NUM_BLOCKS;
     }
 }
 
@@ -404,7 +412,7 @@ void remove_file_or_link(unsigned char *disk, char *path) {
 
     } else { // links_count == 1, need to remove the actual file/link
         // clear and zero the block bitmap
-        clear_block_bitmap(disk, path_inode);
+        clear_block_bitmap(disk, path);
         // clear and zero the inode bitmap
         clear_inode_bitmap(disk, path_inode);
 
