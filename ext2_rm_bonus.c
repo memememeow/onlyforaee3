@@ -82,17 +82,17 @@ void remove_dir(unsigned char *disk, char *path) {
         }
     }
 
-    // zero the block bitmap and inode bitmap
-    zero_bitmap(block_bitmap, block_num);
+    // update fields and zero the block bitmap and inode bitmap
+    path_inode->i_blocks = 0;
     sb->s_free_blocks_count++;
     gd->bg_free_blocks_count++;
+    zero_bitmap(block_bitmap, block_num);
     clear_inode_bitmap(disk, path_inode);
 
     // get the parent directory
     char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
     parent_dir->i_links_count--;
-    parent_dir->i_blocks-=path_inode->i_blocks;
     // remove current directory's name but keep the inode
     remove_name(disk, path);
     gd->bg_used_dirs_count--;
