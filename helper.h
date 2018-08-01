@@ -23,17 +23,17 @@ struct ext2_group_desc *get_group_descriptor_loc(unsigned char *disk);
 /*
  * Return the block bitmap (16*8 bits) location.
  */
-unsigned char *get_block_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd);
+unsigned char *get_block_bitmap_loc(unsigned char *disk);
 
 /*
  * Return the inode bitmap (4*8 bits) location.
  */
-unsigned char *get_inode_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd);
+unsigned char *get_inode_bitmap_loc(unsigned char *disk);
 
 /*
  * Return the inode table location.
  */
-struct ext2_inode *get_inode_table_loc(unsigned char *disk, struct ext2_group_desc *gd);
+struct ext2_inode *get_inode_table_loc(unsigned char *disk);
 
 /*
  * Return the indirect block location.

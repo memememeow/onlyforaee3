@@ -45,21 +45,24 @@ struct ext2_group_desc *get_group_descriptor_loc(unsigned char *disk) {
 /*
  * Return the block bitmap (16*8 bits) location.
  */
-unsigned char *get_block_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd) {
+unsigned char *get_block_bitmap_loc(unsigned char *disk) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     return disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
 }
 
 /*
  * Return the inode bitmap (4*8 bits) location.
  */
-unsigned char *get_inode_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd) {
+unsigned char *get_inode_bitmap_loc(unsigned char *disk) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     return disk + EXT2_BLOCK_SIZE * (gd->bg_inode_bitmap);
 }
 
 /*
  * Return the inode table location.
  */
-struct ext2_inode *get_inode_table_loc(unsigned char *disk, struct ext2_group_desc *gd) {
+struct ext2_inode *get_inode_table_loc(unsigned char *disk) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     return (struct ext2_inode *)(disk + EXT2_BLOCK_SIZE * gd->bg_inode_table);
 }
 
@@ -169,8 +172,7 @@ int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap) {
 struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *filter = "/";
 
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
     // Get the inode of the root
     struct ext2_inode *current_inode = get_root_inode(inode_table);
@@ -240,9 +242,7 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
 struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block_num) {
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
     struct ext2_inode *target = NULL;
-
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
     int curr_pos = 0; // used to keep track of the dir entry in each block
     while (curr_pos < EXT2_BLOCK_SIZE) {
@@ -360,7 +360,7 @@ void zero_bitmap(unsigned char *block, int block_num) {
 void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
+    unsigned char *block_bitmap = get_block_bitmap_loc(disk);
 
     // zero through the blocks on the first level
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
@@ -401,7 +401,7 @@ void clear_block_bitmap(unsigned char *disk, struct ext2_inode *remove) {
 void clear_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk, gd);
+    unsigned char *inode_bitmap = get_inode_bitmap_loc(disk);
 
     int inode_number = get_inode_num(disk, remove);
     zero_bitmap(inode_bitmap, inode_number);
@@ -415,8 +415,7 @@ void clear_inode_bitmap(unsigned char *disk, struct ext2_inode *remove) {
  */
 int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
     int inode_num = 0;
 
