@@ -8,7 +8,9 @@
 #include <errno.h>
 #include <memory.h>
 #include "ext2.h"
-#include "helper.h"
+//#include "helper.h"
+
+#define SINGLE_INDIRECT 12
 
 unsigned char *disk;
 /*
@@ -440,7 +442,7 @@ int main (int argc, char **argv) {
   }
 
   if (strlen(name_var) > EXT2_NAME_LEN) {
-    printf("Target file with name too long: %s\n", target_name);
+    printf("Target file with name too long: %s\n", name_var);
     return ENOENT;
   }
 
@@ -458,7 +460,7 @@ int main (int argc, char **argv) {
   } // If indirected block needed, one more indirect block is required to store pointers
 
   // Require a free inode
-  int i_num = get_free_inode(sb, i_bitmap);
+  int i_num = get_free_inode(sb, gd, i_bitmap);
   struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
 
   // Init the inode
@@ -480,12 +482,12 @@ int main (int argc, char **argv) {
       tar_inode->i_block[block_index] = (unsigned int) b_num;
     } else {
       if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
-        indirect_b = get_free_block(sb, gd, b_bitmap);
-        tar_inode->i_block[SINGLE_INDIRECT] = indirect_b;
+        indirect_num = get_free_block(sb, gd, b_bitmap);
+        tar_inode->i_block[SINGLE_INDIRECT] = indirect_num;
         tar_inode->i_blocks += 2;
       }
       b_num = get_free_block(sb, gd, b_bitmap);
-      unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
+      unsigned int *indirect_block = (unsigned int *) (disk + indirect_num * EXT2_BLOCK_SIZE);
       indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int)b_num;
     }
     unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
@@ -497,7 +499,7 @@ int main (int argc, char **argv) {
 
   // Create a new entry in directory
   if (add_new_entry(disk, dir_inode, (unsigned int)target_inode, name_var, 'f') == -1) {
-    printf("Fail to add new directory entry in directory: %s\n", dir_path);
+    printf("Fail to add new directory entry in directory: %s\n", argv[3]);
     exit(0);
   }
   return 0;
