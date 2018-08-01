@@ -13,7 +13,7 @@
 extern int *find_bitmap(unsigned int map_loc, unsigned int count);
 extern int find_dir_level(char *str);
 extern int find_next_avaliable(int *map, int size, char c);
-extern int new_dir_entry(struct ext2_dir_entry *parent_dir, struct ext2_dir_entry *prev_dir, int parent_b_num, char *directory_name);
+extern int new_dir_entry(struct ext2_dir_entry_2 *parent_dir, struct ext2_dir_entry_2 *prev_dir, int parent_b_num, char *directory_name);
 extern void mark_use(int pos, unsigned int map, unsigned int count);
 extern void set_inode(int i_num, unsigned int itable, unsigned int type, unsigned int b_num, unsigned int size);
 extern int new_dir_init_second_level(int i_num, unsigned int parent_i_num);
@@ -41,10 +41,10 @@ int main(int argc, char *argv[]) {
     // block group
     bg = (struct ext2_group_desc *)(disk + EXT2_BLOCK_SIZE*2);
     struct ext2_inode *inode = (struct ext2_inode *)(disk + EXT2_BLOCK_SIZE * (bg->bg_inode_table));
-    
+
     // find number of nested dir needed
     int num_nested = find_dir_level(argv[2]) - 1;
-    
+
     // find desired location and/or check path validity
     // name of the directory we want to creat
     char *directory_name = basename(argv[2]);
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     char *target_name = strtok(argv[2], "/");
     // some book keeping variables
     struct ext2_inode *curr_inode;
-    struct ext2_dir_entry *curr_dir, *parent_dir, *prev_dir;
+    struct ext2_dir_entry_2 *curr_dir, *parent_dir, *prev_dir;
     int loop_count = 0, inode_num, block;
     // iterate each level of path
     while (target_name != NULL) {
@@ -64,8 +64,8 @@ int main(int argc, char *argv[]) {
         int i;
         for (i = 0; i < (curr_inode->i_blocks)/2; i++) {
             block = curr_inode->i_block[i];
-            curr_dir = (struct ext2_dir_entry *)(disk + EXT2_BLOCK_SIZE * block);
-            
+            curr_dir = (struct ext2_dir_entry_2 *)(disk + EXT2_BLOCK_SIZE * block);
+
             int total_len = 0, dir_exist = 0;
             while(total_len < EXT2_BLOCK_SIZE) {
                 // check if desired name has been found
@@ -102,14 +102,14 @@ int main(int argc, char *argv[]) {
     if (target_name == NULL) // directory already exists
         return EEXIST;
     else
-        parent_dir = (struct ext2_dir_entry *)(disk + EXT2_BLOCK_SIZE * block);
-    
+        parent_dir = (struct ext2_dir_entry_2 *)(disk + EXT2_BLOCK_SIZE * block);
+
     int new_i_num = new_dir_entry(parent_dir, prev_dir, block, directory_name);
     if (new_i_num == ENOSPC)
         return ENOSPC;
     if (new_dir_init_second_level(new_i_num, parent_dir->inode) == ENOSPC)
         return ENOSPC;
-    
+
     return 0;
 }
 
@@ -162,7 +162,7 @@ int find_next_avaliable(int *map, int size, char c) {
 }
 
 // construct a new directory entry and return its inode number
-int new_dir_entry(struct ext2_dir_entry *parent_dir, struct ext2_dir_entry *prev_dir, int parent_b_num, char *directory_name) {
+int new_dir_entry(struct ext2_dir_entry_2 *parent_dir, struct ext2_dir_entry_2 *prev_dir, int parent_b_num, char *directory_name) {
     unsigned int b_count = sb->s_blocks_count;
     unsigned int i_count = sb->s_inodes_count;
     unsigned int b_map = bg->bg_block_bitmap;
@@ -172,13 +172,13 @@ int new_dir_entry(struct ext2_dir_entry *parent_dir, struct ext2_dir_entry *prev
     int *b_bitmap = find_bitmap(b_map, b_count);
     // find inode bitmap
     int *i_bitmap = find_bitmap(i_map, i_count);
-    
+
     // find a next avaliable inode
     int inum = find_next_avaliable(i_bitmap, i_count, 'i');
     if (inum == i_count)
         return ENOSPC;
     mark_use(inum, i_map, i_count);
-    
+
     int parent_i_num = parent_dir->inode;
     struct ext2_inode *inode = (struct ext2_inode *)(disk + EXT2_BLOCK_SIZE * itable);
     struct ext2_inode *parent_inode = inode + parent_i_num - 1;
@@ -190,7 +190,7 @@ int new_dir_entry(struct ext2_dir_entry *parent_dir, struct ext2_dir_entry *prev
     // check if there are enough space for a new entry
     if ((avaliable_rec_len - used_rec_len) >= new_rec_len) {
         prev_dir->rec_len = used_rec_len;
-        struct ext2_dir_entry *dir;
+        struct ext2_dir_entry_2 *dir;
         dir = ((void *)prev_dir) + prev_dir->rec_len;
         dir->inode = inum;
         dir->rec_len = avaliable_rec_len - used_rec_len;
@@ -210,7 +210,7 @@ int new_dir_entry(struct ext2_dir_entry *parent_dir, struct ext2_dir_entry *prev
         parent_inode->i_blocks = (parent_inode->i_blocks) + 2;
         parent_inode->i_block[(parent_inode->i_blocks)/2] = bnum;
         // construct a new directory
-        struct ext2_dir_entry *new_dir = (struct ext2_dir_entry *)(disk + EXT2_BLOCK_SIZE * bnum);
+        struct ext2_dir_entry_2 *new_dir = (struct ext2_dir_entry_2 *)(disk + EXT2_BLOCK_SIZE * bnum);
         new_dir->inode = inum;
         new_dir->rec_len = 1024;
         new_dir->name_len = strlen(directory_name);
@@ -222,7 +222,7 @@ int new_dir_entry(struct ext2_dir_entry *parent_dir, struct ext2_dir_entry *prev
     }
     bg->bg_used_dirs_count = (bg->bg_used_dirs_count) + 1;
     free(i_bitmap);
-    
+
     return inum;
 }
 
@@ -262,7 +262,7 @@ int new_dir_init_second_level(int i_num, unsigned int parent_i_num) {
     unsigned int b_map = bg->bg_block_bitmap;
     unsigned int itable = bg->bg_inode_table;
     int *b_bitmap = find_bitmap(b_map, b_count);
-    
+
     // allocate a new block for the content
     int bnum = find_next_avaliable(b_bitmap, b_count, 'b');
     if (bnum == b_count)
@@ -272,13 +272,13 @@ int new_dir_init_second_level(int i_num, unsigned int parent_i_num) {
     inode = inode + i_num - 1;
     inode->i_block[0] = bnum;
     inode->i_block[1] = '\0';
-    struct ext2_dir_entry *dir = (struct ext2_dir_entry *)(disk + EXT2_BLOCK_SIZE * bnum);
+    struct ext2_dir_entry_2 *dir = (struct ext2_dir_entry_2 *)(disk + EXT2_BLOCK_SIZE * bnum);
     dir->inode = i_num;
     dir->rec_len = 12;
     dir->name_len = 1;
     dir->file_type = EXT2_FT_DIR;
     strcpy(dir->name, ".");
-    
+
     dir = (void *)dir + 12;
     dir->inode = parent_i_num;
     dir->rec_len = EXT2_BLOCK_SIZE - 12;
@@ -298,4 +298,3 @@ int cal_rec_len(int name_length) {
     }
     return result;
 }
-
