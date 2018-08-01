@@ -494,7 +494,6 @@ int main (int argc, char **argv) {
       tar_inode->i_blocks += 2;
       block_index++;
     }
-
     // Debug only
     if (tar_inode->i_blocks / 2 != blocks_needed) {
       printf("Something wrong when write path into blocks!!!!!\n");
