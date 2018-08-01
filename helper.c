@@ -237,7 +237,6 @@ void zero_bitmap(unsigned char *block, int block_num) {
     }
 }
 
-
 /*
  * Clear all the entries in the blocks of given inode and
  * zero the block bitmap of given inode.
@@ -588,6 +587,3 @@ int get_free_block(unsigned char *disk, unsigned char *block_bitmap) {
 
     return -1;
 }
-
-
-
