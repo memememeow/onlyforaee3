@@ -62,16 +62,6 @@ char *get_file_name(char *path);
 char *get_dir_path(char *path);
 
 /*
- * Return the first inode number that is free.
- */
-int get_free_inode(struct ext2_super_block *sb, unsigned char *inode_bitmap);
-
-/*
- * Return the first block number that is free.
- */
-int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap);
-
-/*
  * Trace the given path. Return the inode of the given path.
  */
 struct ext2_inode *trace_path(char *path, unsigned char *disk);
@@ -87,16 +77,6 @@ struct ext2_inode *get_entry_with_name(unsigned char *disk, char *name, struct e
  * otherwise return NULL.
  */
 struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block_num);
-
-/*
- * Create a new directory entry for the new enter file, link or directory.
- */
-struct ext2_dir_entry_2 *setup_entry(unsigned int new_inode, char *f_name, char type);
-
-/*
- * Add new entry into the directory.
- */
-int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type);
 
 /*
  * Zero block [inode / block] bitmap of given block number.
@@ -145,4 +125,19 @@ char *get_dir_parent_path(char *path);
  * Example: /a/bb (or /a/bb/) and ccc outputs /a/bb/ccc
  */
 char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry);
+
+/*
+ * Add new entry into the directory.
+ */
+int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type);
+
+/*
+ * Return the first inode number that is free.
+ */
+int get_free_inode(unsigned char *disk, unsigned char *inode_bitmap);
+
+/*
+ * Return the first block number that is free.
+ */
+int get_free_block(unsigned char *disk, unsigned char *block_bitmap);
 

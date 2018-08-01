@@ -123,50 +123,6 @@ char *get_dir_path(char *path) {
 }
 
 /*
- * Return the first inode number that is free.
- */
-int get_free_inode(struct ext2_super_block *sb, unsigned char *inode_bitmap) {
-    // Loop over the inodes that are not reserved, index i
-    for (int i = EXT2_GOOD_OLD_FIRST_INO; i < sb->s_inodes_count; i++) {
-        int bitmap_byte = i / 8;
-        int bit_order = i % 8;
-        if (!(1 & (inode_bitmap[bitmap_byte] >> bit_order))) {
-          // Such bit is 0, which is a free inode
-          if ((i + 1) % 8 == 0) {
-            inode_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
-          } else {
-            inode_bitmap[(i + 1) / 8] |= 1 << bit_order;
-          }
-          return i + 1;
-        }
-    }
-
-    return -1;
-}
-
-/*
- * Return the first block number that is free.
- */
-int get_free_block(struct ext2_super_block *sb, unsigned char *block_bitmap) {
-    // Loop over the inodes that are not reserved
-    for (int i = 0; i < sb->s_blocks_count; i++) {
-        int bitmap_byte = i / 8;
-        int bit_order = i % 8;
-        if (!(1 & (block_bitmap[bitmap_byte] >> bit_order))) {
-            // Such bit is 0, which is a free block
-            if ((i + 1) % 8 == 0) {
-              block_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
-            } else {
-              block_bitmap[(i + 1) / 8] |= 1 << bit_order;
-            }
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-/*
  * Trace the given path. Return the inode of the given path.
  */
 struct ext2_inode *trace_path(char *path, unsigned char *disk) {
@@ -265,76 +221,6 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
     }
 
     return target;
-}
-
-/*
- * Add new entry into the directory.
- */
-int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type) {
-    // Recalls that there are 12 direct blocks.
-    // Find group descriptor.
-    struct ext2_group_desc *gd = (struct ext2_group_desc *)(disk + 2 * EXT2_BLOCK_SIZE);
-
-    // Find super block of the disk.
-    struct ext2_super_block *sb = (struct ext2_super_block *)(disk + EXT2_BLOCK_SIZE);
-
-    unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
-    int block_num;
-    int length = (int)(strlen(f_name) + sizeof(struct ext2_dir_entry_2 *));
-    // int length = 1021;
-    struct ext2_dir_entry_2 *dir = NULL;
-    for (int k = 0; k < 12; k++) {
-        // If the block exists i.e. not 0.
-        if ((block_num = dir_inode->i_block[k]) == 0) {
-          int free_block_num = get_free_block(sb, b_bitmap);
-          if (free_block_num == -1) { // No extra free blocks for new entry
-            return -1;
-          }
-          dir_inode->i_block[k] = (unsigned int)free_block_num;
-          dir = (struct ext2_dir_entry_2 *)(disk + free_block_num * EXT2_BLOCK_SIZE);
-          length = EXT2_BLOCK_SIZE;
-          break;
-        }
-
-        dir = (struct ext2_dir_entry_2 *)(disk + EXT2_BLOCK_SIZE * block_num);
-        int curr_pos = 0;
-
-        /* Total size of the directories in a block cannot exceed a block size */
-        while (curr_pos < EXT2_BLOCK_SIZE) {
-            if ((curr_pos + dir->rec_len) == EXT2_BLOCK_SIZE) { // last block
-                int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->rec_len;
-                while (true_len % 4 != 0) {
-                    true_len ++;
-                }
-                if ((dir->rec_len - true_len) >= length) {
-                    dir->rec_len = (unsigned char) true_len;
-                    curr_pos = curr_pos + dir->rec_len;
-                    dir = (void *) dir + dir->rec_len;
-                    length = EXT2_BLOCK_SIZE - curr_pos;
-                    k = 12; // also terminate the for loop
-                    break;
-                }
-            }
-            // Moving to the next directory
-            curr_pos = curr_pos + dir->rec_len;
-            dir = (void *) dir + dir->rec_len;
-        }
-    }
-    dir->inode = new_inode;
-    dir->rec_len = (unsigned char) strlen(f_name);
-    memcpy(dir->name, f_name, dir->rec_len);
-    if (type == 'd') {
-        dir->file_type = EXT2_FT_DIR;
-        dir_inode->i_links_count ++;
-    } else if (type == 'f') {
-        dir->file_type = EXT2_FT_REG_FILE;
-    } else if (type == 'l') {
-        dir->file_type = EXT2_FT_SYMLINK;
-    } else {
-        dir->file_type = EXT2_FT_UNKNOWN;
-    }
-    dir->rec_len = (unsigned short)length;
-    return 0;
 }
 
 /*
@@ -573,4 +459,127 @@ char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
 
     return full_path;
 }
+
+/*
+ * Add new entry into the directory.
+ */
+int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type) {
+    // Recalls that there are 12 direct blocks.
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    // struct ext2_super_block *sb = get_superblock_loc(disk);
+
+    unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
+    int block_num;
+    int length = (int)(strlen(f_name) + sizeof(struct ext2_dir_entry_2 *));
+    // int length = 1021;
+    struct ext2_dir_entry_2 *dir = NULL;
+    for (int k = 0; k < 12; k++) {
+        // If the block does not exist yet i.e. block number = 0
+        if ((block_num = dir_inode->i_block[k]) == 0) {
+            int free_block_num = get_free_block(disk, b_bitmap);
+            if (free_block_num == -1) { // No extra free blocks for new entry
+                return -1;
+            }
+            dir_inode->i_block[k] = (unsigned int)free_block_num;
+            dir = get_dir_entry(disk, free_block_num);
+            length = EXT2_BLOCK_SIZE;
+            break;
+        }
+
+        dir = get_dir_entry(disk, block_num);
+        int curr_pos = 0;
+
+        /* Total size of the directories in a block cannot exceed a block size */
+        while (curr_pos < EXT2_BLOCK_SIZE) {
+            int true_len = sizeof(struct ext2_dir_entry_2 *) + dir->name_len;
+            while (true_len % 4 != 0) {
+                true_len ++;
+            }
+            if ((dir->rec_len - true_len) >= length) {
+                int orig_rec_len = dir->rec_len;
+                dir->rec_len = (unsigned char) true_len;
+                // curr_pos = curr_pos + dir->rec_len;
+                dir = (void *) dir + dir->rec_len;
+                length = orig_rec_len - dir->rec_len;
+                k = 12; // also terminate the for loop
+                break;
+            }
+            // Moving to the next directory
+            curr_pos = curr_pos + dir->rec_len;
+            dir = (void *) dir + dir->rec_len;
+        }
+    }
+    if (dir == NULL) {
+        return -1;
+    }
+    dir->inode = new_inode;
+    dir->name_len = (unsigned char) strlen(f_name);
+    memcpy(dir->name, f_name, dir->name_len);
+    if (type == 'd') {
+        dir->file_type = EXT2_FT_DIR;
+        dir_inode->i_links_count ++;
+    } else if (type == 'f') {
+        dir->file_type = EXT2_FT_REG_FILE;
+    } else if (type == 'l') {
+        dir->file_type = EXT2_FT_SYMLINK;
+    } else {
+        dir->file_type = EXT2_FT_UNKNOWN;
+    }
+    dir->rec_len = (unsigned short)length;
+    return 0;
+}
+
+/*
+ * Return the first inode number that is free.
+ */
+int get_free_inode(unsigned char *disk, unsigned char *inode_bitmap) {
+    // Loop over the inodes that are not reserved, index i
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    for (int i = EXT2_GOOD_OLD_FIRST_INO; i < sb->s_inodes_count; i++) {
+        int bitmap_byte = i / 8;
+        int bit_order = i % 8;
+        if (!(1 & (inode_bitmap[bitmap_byte] >> bit_order))) {
+            // Such bit is 0, which is a free inode
+            if ((i + 1) % 8 == 0) {
+                inode_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
+            } else {
+                inode_bitmap[(i + 1) / 8] |= 1 << bit_order;
+            }
+            sb->s_free_inodes_count --;
+            gd->bg_free_inodes_count --;
+            return i + 1;
+        }
+    }
+
+    return -1;
+}
+
+/*
+ * Return the first block number that is free.
+ */
+int get_free_block(unsigned char *disk, unsigned char *block_bitmap) {
+    // Loop over the inodes that are not reserved
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    struct ext2_super_block *sb = get_superblock_loc(disk);
+    for (int i = 0; i < sb->s_blocks_count; i++) {
+        int bitmap_byte = i / 8;
+        int bit_order = i % 8;
+        if (!(1 & (block_bitmap[bitmap_byte] >> bit_order))) {
+            // Such bit is 0, which is a free block
+            if ((i + 1) % 8 == 0) {
+                block_bitmap[((i + 1) / 8) - 1] |= 1 << bit_order;
+            } else {
+                block_bitmap[(i + 1) / 8] |= 1 << bit_order;
+            }
+            sb->s_free_blocks_count --;
+            gd->bg_free_blocks_count --;
+            return i + 1;
+        }
+    }
+
+    return -1;
+}
+
+
 
