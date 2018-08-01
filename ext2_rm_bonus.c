@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 void remove_dir(unsigned char *disk, char *path) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    unsigned char *block_bitmap = get_block_bitmap_loc(disk, gd);
+    unsigned char *block_bitmap = get_block_bitmap_loc(disk);
     struct ext2_inode *path_inode = trace_path(path, disk);
 
     int block_num = path_inode->i_block[0];
