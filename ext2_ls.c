@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include "ext2.h"
 
@@ -51,7 +49,7 @@ int main(int argc, char **argv) {
             }
         }
 
-    } else { // the given path does not exist
+    } else { // The given path does not exist
         printf("exts_ls: No such file or directory.\n");
         return ENOENT;
     }
