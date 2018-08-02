@@ -1,23 +1,23 @@
 ext2_ls: ext2_ls.o
-    gcc -Wall -g -o $@ $^ helper.o
+	gcc -Wall -g -o $@ $^ helper.o
 
 ext2_cp: ext2_cp.o
-    gcc -Wall -g -o $@ $^ helper.o
+	gcc -Wall -g -o $@ $^ helper.o
 
 ext2_mkdir: ext2_mkdir.o
-    gcc -Wall -g -o $@ $^ helper.o
+	gcc -Wall -g -o $@ $^ helper.o
 
 ext2_ln: ext2_ln.o
-    gcc -Wall -g -o $@ $^ helper.o
+	gcc -Wall -g -o $@ $^ helper.o
 
 ext2_rm: ext2_rm.o
-    gcc -Wall -g -o $@ $^ helper.o
+	gcc -Wall -g -o $@ $^ helper.o
 
 ext2_rm_bonus: ext2_rm_bonus.o
-    gcc -Wall -g -o $@ $^ helper.o
+	gcc -Wall -g -o $@ $^ helper.o
 
 %.o : %.c ext2.h helper.h
-    gcc -Wall -g -c $<
+	gcc -Wall -g -c $<
 
 clean :
-    rm *.o
+	rm *.o
