@@ -26,11 +26,11 @@ int main (int argc, char **argv) {
     }
 
     unsigned char *disk = get_disk_loc(argv[1]);
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    // struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
     unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
-    unsigned char *b_bitmap = get_block_bitmap_loc(disk);
+    // unsigned char *b_bitmap = get_block_bitmap_loc(disk);
 
     // Check valid target absolute_path
     // If not valid -> ENOENT
