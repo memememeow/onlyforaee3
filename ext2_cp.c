@@ -312,8 +312,8 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
             if ((dir->rec_len - true_len) >= length) {
                 int orig_rec_len = dir->rec_len;
                 dir->rec_len = (unsigned char) true_len;
-                dir = (void *) dir + dir->rec_len;
-                length = orig_rec_len - dir->rec_len;
+                dir = (void *) dir + true_len;
+                length = orig_rec_len - true_len;
                 k = 12; // also terminate the for loop
                 break;
             }
@@ -495,6 +495,7 @@ int main (int argc, char **argv) {
     }
 
     // Create a new entry in directory
+    printf("%d, %s\n", i_num, name_var);
     if (add_new_entry(disk, dir_inode, (unsigned int)i_num, name_var, 'f') == -1) {
         printf("Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);
