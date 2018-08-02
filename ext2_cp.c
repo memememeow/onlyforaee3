@@ -33,7 +33,7 @@ int main (int argc, char **argv) {
     unsigned char *disk = get_disk_loc(argv[1]);
 
     // Find group descriptor.
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    // struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
 
     // Find super block of the disk.
     struct ext2_super_block *sb = get_superblock_loc(disk);
