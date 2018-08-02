@@ -8,7 +8,6 @@
 #include <sys/mman.h>
 #include <time.h>
 #include "ext2.h"
-#include "helper.h"
 
 #define SINGLE_INDIRECT 12
 #define NUM_BLOCKS 2
