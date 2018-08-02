@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <memory.h>
 #include "ext2.h"
-// #include "helper.h"
 
 #define SINGLE_INDIRECT 12
 
@@ -102,6 +101,30 @@ char *get_file_name(char *path) {
     }
 
     return file_name;
+}
+
+/*
+ * Get parent dir of a directory, exclude root dir.
+ */
+char *get_dir_parent_path(char *path) {
+    char *file_name = NULL;
+    char *parent = NULL;
+    char *full_path = malloc(sizeof(char) * (strlen(path) + 1));
+
+    if (path[strlen(path) - 1] == '/') { // remove last '/'
+        for (int i = 0; i < strlen(path) - 1; i++) {
+            full_path[i] = path[i];
+        }
+
+        full_path[strlen(path) - 1] = '\0';
+    } else {
+        strncpy(full_path, path, strlen(path) + 1);
+    }
+
+    file_name = strrchr(full_path, '/');
+    parent = strndup(full_path, strlen(full_path) - strlen(file_name) + 1);
+
+    return parent;
 }
 
 /*
@@ -366,157 +389,74 @@ int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
 }
 
 /*
- * This program created a linked file from first specific file to second absolute
- * path.
+ * This program make an directory at the specific absolute path.
  */
 int main (int argc, char **argv) {
-    // printf("%s\n", argv[2]);
-    // printf("%s\n", argv[3]);
-    // printf("%s\n", argv[4]);
 
     // Check valid command line arguments
-    if (argc != 4 && argc != 5) {
-        printf("Usage: ext2_ln <virtual_disk> <source_file> <target_file> <-s>\n");
-        exit(1);
-    } else if (argc == 5 && strcmp(argv[4], "-s") != 0) {
-        printf("Usage: ext2_ln <virtual_disk> <source_file> <target_file> <-s>\n");
+    if (argc != 3) {
+        printf("Usage: ext2_mkdir <virtual_disk> <absolute_path>\n");
         exit(1);
     }
 
-    // Check valid disk
-    // Open the disk image file.
     unsigned char *disk = get_disk_loc(argv[1]);
-    printf("Disk open\n");
-
-    // Find group descriptor.
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-
-    // Find super block of the disk.
     struct ext2_super_block *sb = get_superblock_loc(disk);
-
+    struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
     unsigned char *i_bitmap = get_inode_bitmap_loc(disk, gd);
     unsigned char *b_bitmap = get_block_bitmap_loc(disk, gd);
 
-    // Inode table
-    struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
-    printf("I node\n");
-
-    char *dir_path = get_dir_path(argv[3]); // for target file
-    struct ext2_inode *source_inode = trace_path(argv[2], disk);
-    struct ext2_inode *target_inode = trace_path(argv[3], disk);
-    struct ext2_inode *dir_inode = trace_path(dir_path, disk);
-    printf("Get to trace path\n");
-
-    // If source file does not exist -> ENOENT
-    if (source_inode == NULL) {
-        printf("%s :Invalid path.\n", argv[2]);
-        return ENOENT;
-    }
-    printf("Here\n");
-
-    // If target file exist -> EEXIST
-    if (target_inode != NULL) {
-        printf("If target file exist -> EEXIST\n");
-        if (target_inode->i_mode & EXT2_S_IFDIR) {
-            printf("If dir\n");
-            printf("%s :Path provided is a directory.\n", argv[3]);
-            return EISDIR;
+    // Check valid target absolute_path
+    // If not valid -> ENOENT
+    // Get the inode of the given path
+    char *parent_path = get_dir_parent_path(argv[2]);
+    struct ext2_inode *target_inode = trace_path(argv[2], disk);
+    struct ext2_inode *parent_inode = trace_path(parent_path, disk);
+    if (target_inode == NULL) { // Target path does not exist
+        if (parent_path == NULL) { // Directory of file/dir DNE
+            printf("%s :Invalid path.\n", argv[2]);
+            return ENOENT;
         }
-        printf("No matter what\n");
-        printf("%s :File already exist.\n", argv[3]);
+    } else {
+        printf("%s :Directory exists.\n", argv[2]);
         return EEXIST;
     }
 
-    // Directory of target file DNE
-    if (dir_inode == NULL) {
-        printf("%s :Invalid path.\n", dir_path);
+    if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) {
+        printf("Target directory with name too long: %s\n", get_file_name(argv[2]));
         return ENOENT;
     }
 
-    // If source file path is a directory -> EISDIR
-    if (source_inode->i_mode & EXT2_S_IFDIR) {
-        return EISDIR;
+    // Check if there is enough inode (require 1)
+    if (sb->s_free_inodes_count <= 0 || sb->s_free_blocks_count <= 0) {
+        printf("File system does not have enough free inodes or blocks.\n");
+        return ENOSPC;
     }
 
-    int target_inode_num = -1;
-    const char *source_path = (const char *)argv[2];
-    char *target_name = get_file_name(argv[3]);
-    if (strlen(target_name) > EXT2_NAME_LEN) {
-        printf("Target file with name too long: %s\n", target_name);
-        return ENOENT;
-    }
-    int path_len = (int)strlen(source_path);
-    int blocks_needed = path_len / EXT2_BLOCK_SIZE + (path_len % EXT2_BLOCK_SIZE != 0);
+    // Require a free inode
+    int i_num = get_free_inode(disk, i_bitmap);
+    struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
 
-    if (argc == 5) { // Create soft link
-        // Check if we have enough space for path if symbolic link is created
-        if ((blocks_needed <= 12 && sb->s_free_blocks_count < blocks_needed) ||
-            (blocks_needed > 12 && sb->s_free_blocks_count < blocks_needed + 1)) {
-            printf("File system does not have enough free blocks.\n");
-            return ENOSPC;
-        }
+    // Init the inode
+    tar_inode->i_mode = EXT2_S_IFREG;
+    tar_inode->i_size = EXT2_BLOCK_SIZE;
+    tar_inode->i_links_count = 0;
+    tar_inode->i_blocks = 0;
 
-        if ((target_inode_num = get_free_inode(disk, i_bitmap)) == -1) {
-            printf("File system does not have enough free inodes.\n");
-            return ENOSPC;
-        }
-
-        struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
-
-        // Init the inode
-        tar_inode->i_mode = EXT2_S_IFLNK;
-        tar_inode->i_size = (unsigned int)path_len;
-        tar_inode->i_links_count = 1;
-        tar_inode->i_blocks = 0;
-
-        // Write path into target file
-        int block_index = 0;
-        int indirect_b = -1;
-
-        while (block_index * EXT2_BLOCK_SIZE < path_len) {
-            int b_num;
-            if (block_index < SINGLE_INDIRECT) {
-                b_num = get_free_block(disk, b_bitmap);
-                tar_inode->i_block[block_index] = (unsigned int)b_num;
-            } else {
-                if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
-                    indirect_b = get_free_block(disk, b_bitmap);
-                    tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int)indirect_b;
-                    tar_inode->i_blocks += 2;
-                }
-                b_num = get_free_block(disk, b_bitmap);
-                unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
-                indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int)b_num;
-            }
-            unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
-            // printf("%c\n", source_path[block_index * EXT2_BLOCK_SIZE]);
-            strncpy((char *)block, &source_path[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
-            tar_inode->i_blocks += 2;
-            block_index++;
-        }
-
-        // Debug only
-        if (tar_inode->i_blocks / 2 != blocks_needed) {
-            printf("Something wrong when write path into blocks!!!!!\n");
-        }
-
-        printf("target_inode_num is :%d\n", target_inode_num);
-        if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'l') == -1) {
-            printf("Fail to add new directory entry in directory: %s\n", dir_path);
-            exit(0);
-        }
-
-    } else {
-        target_inode_num = get_inode_num(disk, source_inode);
-        printf("target_inode_num is :%d\n", target_inode_num);
-        // struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
-        source_inode->i_links_count++;
-
-        if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'f') == -1) {
-            printf("Fail to add new directory entry in directory: %s\n", dir_path);
-            exit(0);
-        }
+    if (add_new_entry(disk, tar_inode, (unsigned int)i_num, get_file_name(argv[2]), 'd') == -1) {
+        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        exit(0);
     }
 
+    if (add_new_entry(disk, tar_inode, (unsigned int)get_inode_num(disk, parent_inode), get_file_name(parent_path), 'd') == -1) {
+        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        exit(0);
+    }
+
+    // Create a new entry in directory
+    if (add_new_entry(disk, parent_inode, (unsigned int)i_num, get_file_name(argv[2]), 'd') == -1) {
+        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        exit(0);
+    }
     return 0;
 }
