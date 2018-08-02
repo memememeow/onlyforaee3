@@ -295,6 +295,8 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
                 return -1;
             }
             dir_inode->i_block[k] = (unsigned int)free_block_num;
+            dir_inode->i_blocks += 2;
+            dir_inode->i_size += EXT2_BLOCK_SIZE;
             dir = get_dir_entry(disk, free_block_num);
             length = EXT2_BLOCK_SIZE;
             break;
