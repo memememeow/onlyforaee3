@@ -39,11 +39,11 @@ int main (int argc, char **argv) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
 
     // Inode table
-    struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode *i_table = get_inode_table_loc(disk);
 
     // Inode bitmap and block bitmap
-    unsigned char *i_bitmap = get_inode_bitmap_loc(disk, gd);
-    unsigned char *b_bitmap = get_block_bitmap_loc(disk, gd);
+    unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
+    unsigned char *b_bitmap = get_block_bitmap_loc(disk);
 
 
     // Check valid path on native file system
