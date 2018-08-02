@@ -38,16 +38,16 @@ int main (int argc, char **argv) {
     // printf("Disk open\n");
 
     // Find group descriptor.
-    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+    // struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
 
     // Find super block of the disk.
     struct ext2_super_block *sb = get_superblock_loc(disk);
 
-    unsigned char *i_bitmap = get_inode_bitmap_loc(disk, gd);
-    unsigned char *b_bitmap = get_block_bitmap_loc(disk, gd);
+    unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
+    unsigned char *b_bitmap = get_block_bitmap_loc(disk);
 
     // Inode table
-    struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode *i_table = get_inode_table_loc(disk);
     // printf("I node\n");
 
     char *dir_path = get_dir_path(argv[3]); // for target file
@@ -58,7 +58,7 @@ int main (int argc, char **argv) {
 
     // If source file does not exist -> ENOENT
     if (source_inode == NULL) {
-        printf(ext2_ln: "%s :Invalid path.\n", argv[2]);
+        printf("ext2_ln: %s :Invalid path.\n", argv[2]);
         return ENOENT;
     }
     printf("Here\n");
