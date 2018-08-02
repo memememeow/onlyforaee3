@@ -414,24 +414,24 @@ int main (int argc, char **argv) {
     // Get the inode of the given path
     struct ext2_inode *target_inode = trace_path(argv[2], disk);
     if (target_inode != NULL) { // Target path exists
-        printf("%s :Directory exists.\n", argv[2]);
+        printf("ext2_mkdir: %s :Directory exists.\n", argv[2]);
         return EEXIST;
     }
     char *parent_path = get_dir_parent_path(argv[2]);
     struct ext2_inode *parent_inode = trace_path(parent_path, disk);
     if (parent_inode == NULL) {
-        printf("%s :Invalid path.\n", argv[2]);
+        printf("ext2_mkdir: %s :Invalid path.\n", argv[2]);
         return ENOENT;
     }
 
     if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) {
-        printf("Target directory with name too long: %s\n", get_file_name(argv[2]));
+        printf("ext2_mkdir: Target directory with name too long: %s\n", get_file_name(argv[2]));
         return ENOENT;
     }
 
     // Check if there is enough inode (require 1)
     if (sb->s_free_inodes_count <= 0 || sb->s_free_blocks_count <= 0) {
-        printf("File system does not have enough free inodes or blocks.\n");
+        printf("ext2_mkdir: File system does not have enough free inodes or blocks.\n");
         return ENOSPC;
     }
 
@@ -446,18 +446,18 @@ int main (int argc, char **argv) {
     tar_inode->i_blocks = 0;
 
     if (add_new_entry(disk, tar_inode, (unsigned int)i_num, get_file_name(argv[2]), 'd') == -1) {
-        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        printf("ext2_mkdir: Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);
     }
 
     if (add_new_entry(disk, tar_inode, (unsigned int)get_inode_num(disk, parent_inode), get_file_name(parent_path), 'd') == -1) {
-        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        printf("ext2_mkdir: Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);
     }
 
     // Create a new entry in directory
     if (add_new_entry(disk, parent_inode, (unsigned int)i_num, get_file_name(argv[2]), 'd') == -1) {
-        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        printf("ext2_mkdir: Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);
     }
     return 0;
