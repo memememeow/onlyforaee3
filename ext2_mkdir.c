@@ -412,19 +412,16 @@ int main (int argc, char **argv) {
     // Check valid target absolute_path
     // If not valid -> ENOENT
     // Get the inode of the given path
-    char *parent_path = get_dir_parent_path(argv[2]);
     struct ext2_inode *target_inode = trace_path(argv[2], disk);
+    if (target_inode != NULL) { // Target path exists
+        printf("%s :Directory exists.\n", argv[2]);
+        return EEXIST;
+    }
+    char *parent_path = get_dir_parent_path(argv[2]);
     struct ext2_inode *parent_inode = trace_path(parent_path, disk);
-    if (target_inode != NULL) { // Target path does not exist
-        printf("%s :Directory exists.\n", argv[2]);
-        return EEXIST;
-    } else {
-      if (parent_path == NULL) { // Directory of file/dir DNE
-          printf("%s :Invalid path.\n", argv[2]);
-          return ENOENT;
-      }
-        printf("%s :Directory exists.\n", argv[2]);
-        return EEXIST;
+    if (parent_inode == NULL) {
+        printf("%s :Invalid path.\n", argv[2]);
+        return ENOENT;
     }
 
     if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) {
