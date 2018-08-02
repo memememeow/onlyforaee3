@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         }
 
     } else { // the given path does not exist
-        printf("No such file or directory.\n");
+        printf("exts_ls: No such file or directory.\n");
         return ENOENT;
     }
 
