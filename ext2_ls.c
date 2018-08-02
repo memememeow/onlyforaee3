@@ -67,14 +67,14 @@ int main(int argc, char **argv) {
  * Print all the entries of a given directory.
  */
 void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag) {
-    // Print all the entries of a given directory in direct blocks.
+    // Print all the entries of a given directory in the direct blocks.
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (directory->i_block[i]) {
             print_one_block_entries(get_dir_entry(disk, directory->i_block[i]), flag);
         }
     }
 
-    // Print all the entries of given directory in indirect blocks.
+    // Print all the entries of given directory in the indirect blocks.
     if (directory->i_block[SINGLE_INDIRECT]) {
         unsigned int *indirect = get_indirect_block_loc(disk, directory);
 
@@ -90,7 +90,7 @@ void print_entries(unsigned char *disk, struct ext2_inode *directory, char *flag
  * Print the entries in one block
  */
 void print_one_block_entries(struct ext2_dir_entry_2 *dir, char *flag) {
-    int curr_pos = 0; // used to keep track of the dir entry in each block
+    int curr_pos = 0; // used to keep track of the dir entries in each block
     while (curr_pos < EXT2_BLOCK_SIZE) {
         char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
 
