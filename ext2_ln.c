@@ -386,7 +386,7 @@ int main (int argc, char **argv) {
     // Check valid disk
     // Open the disk image file.
     unsigned char *disk = get_disk_loc(argv[1]);
-    printf("Disk open\n");
+    // printf("Disk open\n");
 
     // Find group descriptor.
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
@@ -399,37 +399,37 @@ int main (int argc, char **argv) {
 
     // Inode table
     struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
-    printf("I node\n");
+    // printf("I node\n");
 
     char *dir_path = get_dir_path(argv[3]); // for target file
     struct ext2_inode *source_inode = trace_path(argv[2], disk);
     struct ext2_inode *target_inode = trace_path(argv[3], disk);
     struct ext2_inode *dir_inode = trace_path(dir_path, disk);
-    printf("Get to trace path\n");
+    // printf("Get to trace path\n");
 
     // If source file does not exist -> ENOENT
     if (source_inode == NULL) {
-        printf("%s :Invalid path.\n", argv[2]);
+        printf(ext2_ln: "%s :Invalid path.\n", argv[2]);
         return ENOENT;
     }
     printf("Here\n");
 
     // If target file exist -> EEXIST
     if (target_inode != NULL) {
-        printf("If target file exist -> EEXIST\n");
+        // printf("If target file exist -> EEXIST\n");
         if (target_inode->i_mode & EXT2_S_IFDIR) {
-            printf("If dir\n");
-            printf("%s :Path provided is a directory.\n", argv[3]);
+            // printf("If dir\n");
+            printf("ext2_ln: %s :Path provided is a directory.\n", argv[3]);
             return EISDIR;
         }
-        printf("No matter what\n");
-        printf("%s :File already exist.\n", argv[3]);
+        // printf("No matter what\n");
+        printf("ext2_ln: %s :File already exist.\n", argv[3]);
         return EEXIST;
     }
 
     // Directory of target file DNE
     if (dir_inode == NULL) {
-        printf("%s :Invalid path.\n", dir_path);
+        printf("ext2_ln: %s :Invalid path.\n", dir_path);
         return ENOENT;
     }
 
@@ -442,7 +442,7 @@ int main (int argc, char **argv) {
     const char *source_path = (const char *)argv[2];
     char *target_name = get_file_name(argv[3]);
     if (strlen(target_name) > EXT2_NAME_LEN) {
-        printf("Target file with name too long: %s\n", target_name);
+        printf("ext2_ln: Target file with name too long: %s\n", target_name);
         return ENOENT;
     }
     int path_len = (int)strlen(source_path);
@@ -452,12 +452,12 @@ int main (int argc, char **argv) {
         // Check if we have enough space for path if symbolic link is created
         if ((blocks_needed <= 12 && sb->s_free_blocks_count < blocks_needed) ||
             (blocks_needed > 12 && sb->s_free_blocks_count < blocks_needed + 1)) {
-            printf("File system does not have enough free blocks.\n");
+            printf("ext2_ln: File system does not have enough free blocks.\n");
             return ENOSPC;
         }
 
         if ((target_inode_num = get_free_inode(disk, i_bitmap)) == -1) {
-            printf("File system does not have enough free inodes.\n");
+            printf("ext2_ln: File system does not have enough free inodes.\n");
             return ENOSPC;
         }
 
@@ -495,25 +495,25 @@ int main (int argc, char **argv) {
             block_index++;
         }
 
-        // Debug only
-        if (tar_inode->i_blocks / 2 != blocks_needed) {
-            printf("Something wrong when write path into blocks!!!!!\n");
-        }
+        // // Debug only
+        // if (tar_inode->i_blocks / 2 != blocks_needed) {
+        //     printf("Something wrong when write path into blocks!!!!!\n");
+        // }
 
         printf("target_inode_num is :%d\n", target_inode_num);
         if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'l') == -1) {
-            printf("Fail to add new directory entry in directory: %s\n", dir_path);
+            printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);
         }
 
     } else {
         target_inode_num = get_inode_num(disk, source_inode);
-        printf("target_inode_num is :%d\n", target_inode_num);
+        // printf("target_inode_num is :%d\n", target_inode_num);
         // struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
         source_inode->i_links_count++;
 
         if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'f') == -1) {
-            printf("Fail to add new directory entry in directory: %s\n", dir_path);
+            printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);
         }
     }

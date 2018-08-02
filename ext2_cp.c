@@ -421,7 +421,7 @@ int main (int argc, char **argv) {
     struct ext2_inode *parent_inode = trace_path(parent_path, disk);
     if (target_inode == NULL) { // Target path does not exist
         if (parent_path == NULL) { // Directory of file/dir DNE
-            printf("%s :Invalid path.\n", argv[3]);
+            printf("ext2_cp: %s :Invalid path.\n", argv[3]);
             return ENOENT;
         } else {   // File path with file DNE (yet) in a valid directory path.
             name_var = get_file_name(argv[3]);
@@ -435,26 +435,26 @@ int main (int argc, char **argv) {
 
             // If such file exist -> EEXIST, no overwrite
         } else { // Source path is a file or a link
-            printf("%s :File exists.\n", argv[3]);
+            printf("ext2_cp: %s :File exists.\n", argv[3]);
             return EEXIST;
         }
     }
 
     if (strlen(name_var) > EXT2_NAME_LEN) {
-        printf("Target file with name too long: %s\n", name_var);
+        printf("ext2_cp: Target file with name too long: %s\n", name_var);
         return ENOENT;
     }
 
     // Check if there is enough inode (require 1)
     if (sb->s_free_inodes_count <= 0) {
-        printf("File system does not have enough free inodes.\n");
+        printf("ext2_cp: File system does not have enough free inodes.\n");
         return ENOSPC;
     }
 
     // Check if there is enough blocks for Data
     if ((blocks_needed <= 12 && sb->s_free_blocks_count < blocks_needed) ||
         (blocks_needed > 12 && sb->s_free_blocks_count < blocks_needed + 1)) {
-        printf("File system does not have enough free blocks.\n");
+        printf("ext2_cp: File system does not have enough free blocks.\n");
         return ENOSPC;
     } // If indirected block needed, one more indirect block is required to store pointers
 
@@ -499,7 +499,7 @@ int main (int argc, char **argv) {
     // Create a new entry in directory
     printf("%d, %s\n", i_num, name_var);
     if (add_new_entry(disk, dir_inode, (unsigned int)i_num, name_var, 'f') == -1) {
-        printf("Fail to add new directory entry in directory: %s\n", argv[3]);
+        printf("ext2_cp: Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);
     }
     return 0;
