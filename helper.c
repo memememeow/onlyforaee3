@@ -473,7 +473,6 @@ char *combine_name(char *parent_path, struct ext2_dir_entry_2 *dir_entry) {
 int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned int new_inode, char *f_name, char type) {
     // Recalls that there are 12 direct blocks.
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    // struct ext2_super_block *sb = get_superblock_loc(disk);
 
     unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
     int block_num;
@@ -488,6 +487,8 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
                 return -1;
             }
             dir_inode->i_block[k] = (unsigned int)free_block_num;
+            dir_inode->i_blocks += 2;
+            dir_inode->i_size += EXT2_BLOCK_SIZE;
             dir = get_dir_entry(disk, free_block_num);
             length = EXT2_BLOCK_SIZE;
             break;
@@ -505,9 +506,8 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
             if ((dir->rec_len - true_len) >= length) {
                 int orig_rec_len = dir->rec_len;
                 dir->rec_len = (unsigned char) true_len;
-                // curr_pos = curr_pos + dir->rec_len;
-                dir = (void *) dir + dir->rec_len;
-                length = orig_rec_len - dir->rec_len;
+                dir = (void *) dir + true_len;
+                length = orig_rec_len - true_len;
                 k = 12; // also terminate the for loop
                 break;
             }
