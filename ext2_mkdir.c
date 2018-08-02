@@ -45,21 +45,24 @@ struct ext2_group_desc *get_group_descriptor_loc(unsigned char *disk) {
 /*
  * Return the block bitmap (16*8 bits) location.
  */
-unsigned char *get_block_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd) {
+unsigned char *get_block_bitmap_loc(unsigned char *disk) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     return disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
 }
 
 /*
  * Return the inode bitmap (4*8 bits) location.
  */
-unsigned char *get_inode_bitmap_loc(unsigned char *disk, struct ext2_group_desc *gd) {
+unsigned char *get_inode_bitmap_loc(unsigned char *disk) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     return disk + EXT2_BLOCK_SIZE * (gd->bg_inode_bitmap);
 }
 
 /*
  * Return the inode table location.
  */
-struct ext2_inode *get_inode_table_loc(unsigned char *disk, struct ext2_group_desc *gd) {
+struct ext2_inode *get_inode_table_loc(unsigned char *disk) {
+    struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     return (struct ext2_inode *)(disk + EXT2_BLOCK_SIZE * gd->bg_inode_table);
 }
 
@@ -204,7 +207,7 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
     struct ext2_inode *target = NULL;
 
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
     int curr_pos = 0; // used to keep track of the dir entry in each block
     while (curr_pos < EXT2_BLOCK_SIZE) {
@@ -264,7 +267,7 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
     char *filter = "/";
 
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
     // Get the inode of the root
     struct ext2_inode *current_inode = get_root_inode(inode_table);
@@ -374,7 +377,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
 int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-    struct ext2_inode  *inode_table = get_inode_table_loc(disk, gd);
+    struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
     int inode_num = 0;
 
@@ -402,9 +405,9 @@ int main (int argc, char **argv) {
     unsigned char *disk = get_disk_loc(argv[1]);
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     struct ext2_super_block *sb = get_superblock_loc(disk);
-    struct ext2_inode *i_table = get_inode_table_loc(disk, gd);
-    unsigned char *i_bitmap = get_inode_bitmap_loc(disk, gd);
-    unsigned char *b_bitmap = get_block_bitmap_loc(disk, gd);
+    struct ext2_inode *i_table = get_inode_table_loc(disk);
+    unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
+    unsigned char *b_bitmap = get_block_bitmap_loc(disk);
 
     // Check valid target absolute_path
     // If not valid -> ENOENT
@@ -412,12 +415,14 @@ int main (int argc, char **argv) {
     char *parent_path = get_dir_parent_path(argv[2]);
     struct ext2_inode *target_inode = trace_path(argv[2], disk);
     struct ext2_inode *parent_inode = trace_path(parent_path, disk);
-    if (target_inode == NULL) { // Target path does not exist
-        if (parent_path == NULL) { // Directory of file/dir DNE
-            printf("%s :Invalid path.\n", argv[2]);
-            return ENOENT;
-        }
+    if (target_inode != NULL) { // Target path does not exist
+        printf("%s :Directory exists.\n", argv[2]);
+        return EEXIST;
     } else {
+      if (parent_path == NULL) { // Directory of file/dir DNE
+          printf("%s :Invalid path.\n", argv[2]);
+          return ENOENT;
+      }
         printf("%s :Directory exists.\n", argv[2]);
         return EEXIST;
     }
