@@ -106,8 +106,8 @@ int main (int argc, char **argv) {
     char buf[file_size];
 
     if (read(fd, buf, file_size) < 0) {
-      perror("Read");
-      exit(1);
+        perror("Read");
+        exit(1);
     }
 
     write_into_block(disk, tar_inode, buf, file_size);
