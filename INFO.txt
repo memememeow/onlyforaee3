@@ -1,10 +1,10 @@
-name: Yuhan Shao
+Name: Yuhan Shao
 CDF ID: shaoyuha
 
-name: Huan Wang
+Name: Huan Wang
 CDF ID: wanghu43
 
-name: Muyuan Cao
+Name: Muyuan Cao
 CDF ID: caomuyua
 
 
