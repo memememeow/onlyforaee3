@@ -143,14 +143,14 @@ struct ext2_inode *trace_path(char *path, unsigned char *disk) {
 
         token = strtok(NULL, filter);
 
-        // handle case: in the middle of the path is not a directory
+        // Handle case: in the middle of the path is not a directory
         if (current_inode != NULL && token != NULL
             && !(current_inode->i_mode & EXT2_S_IFDIR)) {
             return NULL;
         }
     }
 
-    // handle the case like: /a/bb/ccc/, ccc need to be a directory
+    // Handle the case like: /a/bb/ccc/, ccc need to be a directory
     if (current_inode != NULL
         && (path[strlen(path) - 1] == '/')
         && !(current_inode->i_mode & EXT2_S_IFDIR)) {
@@ -197,7 +197,7 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
     struct ext2_inode *target = NULL;
     struct ext2_inode  *inode_table = get_inode_table_loc(disk);
 
-    int curr_pos = 0; // used to keep track of the dir entry in each block
+    int curr_pos = 0; // Used to keep track of the dir entry in each block
     while (curr_pos < EXT2_BLOCK_SIZE) {
         char *entry_name = malloc(sizeof(char) * dir->name_len + 1);
 
@@ -221,7 +221,7 @@ struct ext2_inode *get_entry_in_block(unsigned char *disk, char *name, int block
 }
 
 /*
- * Zero block [inode / block] bitmap of given block number.
+ * Zero the block [inode / block] bitmap of the given block number.
  */
 void zero_bitmap(unsigned char *block, int block_num) {
     int bitmap_byte = block_num/ 8;
@@ -245,12 +245,11 @@ void clear_block_bitmap(unsigned char *disk, char *path) {
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
     unsigned char *block_bitmap = get_block_bitmap_loc(disk);
 
-    // zero through the blocks on the first level
+    // Zero through the blocks on the first level
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
-        if (remove->i_block[i]) { // check has data, not points to 0
-            // clear_one_block(disk, remove->i_block[i]);
+        if (remove->i_block[i]) { // Check has data, not points to 0
             zero_bitmap(block_bitmap, remove->i_block[i]);
-            remove->i_block[i] = 0; // points to "boot" block
+            remove->i_block[i] = 0; // Points to "boot" block
 
             sb->s_free_blocks_count++;
             gd->bg_free_blocks_count++;
@@ -259,15 +258,14 @@ void clear_block_bitmap(unsigned char *disk, char *path) {
         }
     }
 
-    // zero through the blocks on the second level
+    // Zero through the blocks on the second level
     if (remove->i_block[SINGLE_INDIRECT]) {
         unsigned int *indirect = get_indirect_block_loc(disk, remove);
 
         for (int j = 0; j < EXT2_BLOCK_SIZE / sizeof(unsigned int); j++) {
             if (indirect[j]) {
-                // clear_one_block(disk, indirect[j]);
                 zero_bitmap(block_bitmap, indirect[j]);
-                indirect[j] = 0; // each indirect block points to "boot" block
+                indirect[j] = 0; // Each indirect block points to "boot" block
 
                 sb->s_free_blocks_count++;
                 gd->bg_free_blocks_count++;
@@ -309,7 +307,7 @@ int get_inode_num(unsigned char *disk, struct ext2_inode *target) {
     int inode_num = 0;
 
     for (int i = 0; i < sb->s_inodes_count; i++) {
-        if (inode_table[i].i_size && (&(inode_table[i]) == target)) { // there is data
+        if (inode_table[i].i_size && (&(inode_table[i]) == target)) { // There is data
             inode_num = i + 1;
         }
     }
@@ -326,14 +324,14 @@ void remove_name(unsigned char *disk, char *path) {
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
     int remove = 0;
 
-    // check through the direct blocks
+    // Check through the direct blocks
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
         if (parent_dir->i_block[i]) { // check has data, not points to 0
             remove = remove_name_in_block(disk, file_name, parent_dir->i_block[i]);
         }
     }
 
-    // check through the single indirect block's blocks
+    // Check through the single indirect block's blocks
     if (parent_dir->i_block[SINGLE_INDIRECT] && (remove == 0)) {
         unsigned int *indirect = get_indirect_block_loc(disk, parent_dir);
 
@@ -352,7 +350,7 @@ void remove_name(unsigned char *disk, char *path) {
 int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
 
-    int curr_pos = 0; // used to keep track of the dir entry in each block
+    int curr_pos = 0; // Used to keep track of the dir entry in each block
     struct ext2_dir_entry_2 *prev_dir = NULL;
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
@@ -363,12 +361,12 @@ int remove_name_in_block(unsigned char *disk, char *file_name, int block_num) {
         }
         entry_name[dir->name_len] = '\0';
 
-        if (strcmp(entry_name, file_name) == 0) { // find the dir entry with given name
+        if (strcmp(entry_name, file_name) == 0) { // Find the dir entry with given name
            for (int i = 0; i < dir->name_len; i++) {
                 dir->name[i] = '\0';
            }
 
-            if (prev_dir != NULL) { // need to update of the rec_len of the previous dir entry
+            if (prev_dir != NULL) { // Need to update of the rec_len of the previous dir entry
                 prev_dir->rec_len += dir->rec_len;
             }
             dir->rec_len = 0;
@@ -400,21 +398,21 @@ void remove_file_or_link(unsigned char *disk, char *path) {
 
     // Get the inode of a file/link which need to be removed
     if (path_inode->i_links_count > 1) {
-        // remove current file's name but keep the inode
+        // Remove current file's name but keep the inode
         remove_name(disk, path);
-        // decrement links_count
+        // Decrement links_count
         path_inode->i_links_count--;
 
     } else { // links_count == 1, need to remove the actual file/link
-        // clear and zero the block bitmap
+        // Clear and zero the block bitmap
         clear_block_bitmap(disk, path);
-        // clear and zero the inode bitmap
+        // Clear and zero the inode bitmap
         clear_inode_bitmap(disk, path_inode);
 
-        // remove current file's name but keep the inode
+        // Remove current file's name but keep the inode
         remove_name(disk, path);
 
-        // set delete time, in order to reuse inode
+        // Set delete time, in order to reuse inode
         path_inode->i_dtime = (unsigned int) time(NULL);
         path_inode->i_size = 0;
     }
@@ -473,7 +471,6 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
     unsigned char *b_bitmap =  disk + EXT2_BLOCK_SIZE * (gd->bg_block_bitmap);
     int block_num;
     int length = (int)(strlen(f_name) + sizeof(struct ext2_dir_entry_2 *));
-    // int length = 1021;
     struct ext2_dir_entry_2 *dir = NULL;
     for (int k = 0; k < 12; k++) {
         // If the block does not exist yet i.e. block number = 0
@@ -504,7 +501,7 @@ int add_new_entry(unsigned char *disk, struct ext2_inode *dir_inode, unsigned in
                 dir->rec_len = (unsigned char) true_len;
                 dir = (void *) dir + true_len;
                 length = orig_rec_len - true_len;
-                k = 12; // also terminate the for loop
+                k = 12; // Also terminate the for loop
                 break;
             }
             // Moving to the next directory
