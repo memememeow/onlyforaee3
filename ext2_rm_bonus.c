@@ -26,13 +26,13 @@ int main(int argc, char **argv) {
 
     // The path do not exist
     if (path_inode == NULL) {
-        printf("The path %s do not exist.\n", argv[2]);
+        printf("ext2_rm_bonus: The path %s do not exist.\n", argv[2]);
         return ENOENT;
     }
 
     // Cannot delete root
     if (strcmp(argv[2], "/") == 0) {
-        printf("User cannot delete the root dir.\n");
+        printf("ext2_rm_bonus: User cannot delete the root dir.\n");
         exit(1);
     }
 
