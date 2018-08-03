@@ -11,7 +11,6 @@ unsigned char *disk;
  * path.
  */
 int main (int argc, char **argv) {
-
     // Check valid command line arguments
     if (argc != 4 && argc != 5) {
         printf("Usage: ext2_ln <virtual_disk> <source_file> <target_file> <-s>\n");
