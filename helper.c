@@ -9,9 +9,6 @@
 #include <time.h>
 #include "ext2.h"
 
-#define SINGLE_INDIRECT 12
-#define NUM_BLOCKS 2
-
 /*
  * Return the disk location.
  */
@@ -585,4 +582,36 @@ int get_free_block(unsigned char *disk, unsigned char *block_bitmap) {
     }
 
     return -1;
+}
+
+/*
+ * Find a new unused inode and initialize. Return inode number. Return -1 if
+ * could not find such inode.
+ */
+int init_inode(unsigned char *disk, int size, char type) {
+  int inode_num;
+  unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
+  struct ext2_inode *i_table = get_inode_table_loc(disk);
+  if ((inode_num = get_free_inode(disk, i_bitmap)) == -1) {
+      return -1;
+  }
+
+  struct ext2_inode *tar_inode = &(i_table[inode_num - 1]);
+
+  // Init the inode
+  if (type == 'f') {
+    tar_inode->i_mode = EXT2_S_IFREG;
+    tar_inode->i_links_count = 1;
+  } else if (type == 'd') {
+    tar_inode->i_mode = EXT2_S_IFDIR;
+    tar_inode->i_links_count = 0;
+  } else if (type == 'l') {
+    tar_inode->i_mode = EXT2_S_IFLNK;
+    tar_inode->i_links_count = 1;
+  }
+  tar_inode->i_size = (unsigned int)size;
+  tar_inode->i_blocks = 0;
+  tar_inode->i_dtime = 0;
+
+  return inode_num;
 }

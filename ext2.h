@@ -370,5 +370,9 @@ int get_free_inode(unsigned char *disk, unsigned char *inode_bitmap);
  */
 int get_free_block(unsigned char *disk, unsigned char *block_bitmap);
 
-
+/*
+ * Find a new unused inode and initialize. Return inode number. Return -1 if
+ * could not find such inode.
+ */
+int init_inode(unsigned char *disk, int size, char type);
 #endif
