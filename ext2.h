@@ -375,4 +375,6 @@ int get_free_block(unsigned char *disk, unsigned char *block_bitmap);
  * could not find such inode.
  */
 int init_inode(unsigned char *disk, int size, char type);
+
+int write_into_block(unsigned char *disk, struct ext2_inode *tar_inode, char *buf, int buf_size);
 #endif
