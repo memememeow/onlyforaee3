@@ -9,21 +9,12 @@
 #include <memory.h>
 #include "ext2.h"
 
-#define SINGLE_INDIRECT 12
-
 unsigned char *disk;
 
 
 /**
  * This program works like mkdir, creating the final directory on the
  * specified path on the disk.
- *
- * @arg1: An ext2 formatted virtual disk
- * @arg2: An absolute path on this disk
- *
- * @return: 	Success:					0
- * 				Path not exist: 			ENOENT
- * 				Directory already exists: 	EEXIST
  */
 int main (int argc, char **argv) {
 
@@ -70,15 +61,13 @@ int main (int argc, char **argv) {
         return ENOSPC;
     }
 
-    // Require a free inode
-    int i_num = get_free_inode(disk, i_bitmap);
-    struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
+    int i_num = init_inode(disk, EXT2_BLOCK_SIZE, 'd');
+    if (i_num == -1) {
+        printf("ext2_ln: File system does not have enough free inodes.\n");
+        return ENOSPC;
+    }
 
-    // Initialize the inode
-    tar_inode->i_mode = EXT2_S_IFDIR;
-    tar_inode->i_size = EXT2_BLOCK_SIZE;
-    tar_inode->i_links_count = 0;
-    tar_inode->i_blocks = 0;
+    struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
 
     // Create a new entry in directory
     if (add_new_entry(disk, parent_inode, (unsigned int)i_num, get_file_name(argv[2]), 'd') == -1) {
