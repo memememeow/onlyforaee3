@@ -14,23 +14,35 @@
 unsigned char *disk;
 
 
-/*
- * This program make an directory at the specific absolute path.
+/**
+ * This program works like mkdir, creating the final directory on the
+ * specified path on the disk.
+ *
+ * @arg1: An ext2 formatted virtual disk
+ * @arg2: An absolute path on this disk
+ *
+ * @return: 	Success:					0
+ * 				Path not exist: 			ENOENT
+ * 				Directory already exists: 	EEXIST
  */
 int main (int argc, char **argv) {
 
-    // Check valid command line arguments
+    // Check valid user inputs
     if (argc != 3) {
         printf("Usage: ext2_mkdir <virtual_disk> <absolute_path>\n");
         exit(1);
     }
 
+    // Map disk image file into memory
     unsigned char *disk = get_disk_loc(argv[1]);
+
+    //blocks group descriptor
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
+
+    //super block
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
     unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
-    // unsigned char *b_bitmap = get_block_bitmap_loc(disk);
 
     // Check valid target absolute_path
     // If not valid -> ENOENT
@@ -42,12 +54,12 @@ int main (int argc, char **argv) {
     }
     char *parent_path = get_dir_parent_path(argv[2]);
     struct ext2_inode *parent_inode = trace_path(parent_path, disk);
-    if (parent_inode == NULL) {
+    if (parent_inode == NULL) { //parent directory not exist
         printf("ext2_mkdir: %s :Invalid path.\n", argv[2]);
         return ENOENT;
     }
 
-    if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) {
+    if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) {// target name too long
         printf("ext2_mkdir: Target directory with name too long: %s\n", get_file_name(argv[2]));
         return ENOENT;
     }
@@ -62,7 +74,7 @@ int main (int argc, char **argv) {
     int i_num = get_free_inode(disk, i_bitmap);
     struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
 
-    // Init the inode
+    // Initialize the inode
     tar_inode->i_mode = EXT2_S_IFDIR;
     tar_inode->i_size = EXT2_BLOCK_SIZE;
     tar_inode->i_links_count = 0;
@@ -84,6 +96,7 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
+    //update directories count of blocks group descriptor
     gd->bg_used_dirs_count ++;
     return 0;
 }
