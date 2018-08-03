@@ -21,13 +21,10 @@ int main (int argc, char **argv) {
     }
 
     // Check valid disk
-    // Open the disk image file.
     unsigned char *disk = get_disk_loc(argv[1]);
-    // Find super block of the disk.
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
     unsigned char *b_bitmap = get_block_bitmap_loc(disk);
-
 
     // Check valid path on native file system
     // Open source file
@@ -107,30 +104,14 @@ int main (int argc, char **argv) {
 
     // Write into target file (data blocks
     // Requires enough blocks
-    char buf[EXT2_BLOCK_SIZE];
-    int block_index = 0;
-    int indirect_num = -1;
+    char buf[file_size];
 
-    while (read(fd, buf, EXT2_BLOCK_SIZE) != 0) {
-        int b_num;
-        if (block_index < SINGLE_INDIRECT) {
-            b_num = get_free_block(disk, b_bitmap);
-            tar_inode->i_block[block_index] = (unsigned int) b_num;
-        } else {
-            if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
-                indirect_num = get_free_block(disk, b_bitmap);
-                tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int) indirect_num;
-                tar_inode->i_blocks += 2;
-            }
-            b_num = get_free_block(disk, b_bitmap);
-            unsigned int *indirect_block = (unsigned int *) (disk + indirect_num * EXT2_BLOCK_SIZE);
-            indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int) b_num;
-        }
-        unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
-        strncpy((char *) block, buf, EXT2_BLOCK_SIZE);
-        tar_inode->i_blocks += 2;
-        block_index++;
+    if (read(fd, buf, file_size) < 0) {
+      perror("Read");
+      exit(1);
     }
+
+    write_into_block(disk, tar_inode, buf, file_size);
 
     // Create a new entry in directory
     printf("%d, %s\n", i_num, name_var);

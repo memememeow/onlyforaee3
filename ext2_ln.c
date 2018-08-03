@@ -23,7 +23,6 @@ int main (int argc, char **argv) {
     // Check valid disk
     unsigned char *disk = get_disk_loc(argv[1]);
     struct ext2_super_block *sb = get_superblock_loc(disk);
-    unsigned char *b_bitmap = get_block_bitmap_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
 
     struct ext2_inode *source_inode = trace_path(argv[2], disk);
@@ -89,32 +88,8 @@ int main (int argc, char **argv) {
 
         struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
 
-        // Write path into target file
-        int block_index = 0;
-        int indirect_b = -1;
+        write_into_block(disk, (char *)tar_inode, source_path, path_len);
 
-        while (block_index * EXT2_BLOCK_SIZE < path_len) {
-            int b_num;
-            if (block_index < SINGLE_INDIRECT) {
-                b_num = get_free_block(disk, b_bitmap);
-                tar_inode->i_block[block_index] = (unsigned int) b_num;
-            } else {
-                if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
-                    indirect_b = get_free_block(disk, b_bitmap);
-                    tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int) indirect_b;
-                    tar_inode->i_blocks += 2;
-                }
-                b_num = get_free_block(disk, b_bitmap);
-                unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
-                indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int) b_num;
-            }
-            unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
-            strncpy((char *) block, &source_path[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
-            tar_inode->i_blocks += 2;
-            block_index++;
-        }
-
-        printf("target_inode_num is :%d\n", target_inode_num);
         if (add_new_entry(disk, dir_inode, (unsigned int) target_inode_num, target_name, 'l') == -1) {
             printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);

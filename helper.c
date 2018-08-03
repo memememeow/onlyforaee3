@@ -612,3 +612,31 @@ int init_inode(unsigned char *disk, int size, char type) {
 
   return inode_num;
 }
+
+int write_into_block(unsigned char *disk, struct ext2_inode *tar_inode, char *buf, int buf_size) {
+  // Write path into target file
+  int block_index = 0;
+  int indirect_b;
+  unsigned char *b_bitmap = get_block_bitmap_loc(disk);
+  while (block_index * EXT2_BLOCK_SIZE < buf_size) {
+      int b_num;
+      if (block_index < SINGLE_INDIRECT) {
+          b_num = get_free_block(disk, b_bitmap);
+          tar_inode->i_block[block_index] = (unsigned int) b_num;
+      } else {
+          if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
+              indirect_b = get_free_block(disk, b_bitmap);
+              tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int) indirect_b;
+              tar_inode->i_blocks += 2;
+          }
+          b_num = get_free_block(disk, b_bitmap);
+          unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
+          indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int) b_num;
+      }
+      unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
+      strncpy((char *) block, &buf[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
+      tar_inode->i_blocks += 2;
+      block_index++;
+  }
+  return 0;
+}
