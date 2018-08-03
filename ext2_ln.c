@@ -1,11 +1,6 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/mman.h>
 #include <errno.h>
 #include "ext2.h"
 
@@ -65,18 +60,18 @@ int main (int argc, char **argv) {
         printf("ext2_ln: %s :Invalid path.\n", dir_path);
         return ENOENT;
     } else if ((argv[3])[strlen(argv[3]) - 1] == '/') {
-      printf("ext2_cp: %s :Invalid path.\n", argv[3]);
-      return ENOENT;
+        printf("ext2_cp: %s :Invalid path.\n", argv[3]);
+        return ENOENT;
     }
 
-    int target_inode_num = -1;
-    const char *source_path = (const char *)argv[2];
+    int target_inode_num;
+    const char *source_path = (const char *) argv[2];
     char *target_name = get_file_name(argv[3]);
     if (strlen(target_name) > EXT2_NAME_LEN) {
         printf("ext2_ln: Target file with name too long: %s\n", target_name);
         return ENOENT;
     }
-    int path_len = (int)strlen(source_path);
+    int path_len = (int) strlen(source_path);
     int blocks_needed = path_len / EXT2_BLOCK_SIZE + (path_len % EXT2_BLOCK_SIZE != 0);
 
     if (argc == 5) { // Create soft link
@@ -103,26 +98,25 @@ int main (int argc, char **argv) {
             int b_num;
             if (block_index < SINGLE_INDIRECT) {
                 b_num = get_free_block(disk, b_bitmap);
-                tar_inode->i_block[block_index] = (unsigned int)b_num;
+                tar_inode->i_block[block_index] = (unsigned int) b_num;
             } else {
                 if (block_index == SINGLE_INDIRECT) { // First time access indirect blocks
                     indirect_b = get_free_block(disk, b_bitmap);
-                    tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int)indirect_b;
+                    tar_inode->i_block[SINGLE_INDIRECT] = (unsigned int) indirect_b;
                     tar_inode->i_blocks += 2;
                 }
                 b_num = get_free_block(disk, b_bitmap);
                 unsigned int *indirect_block = (unsigned int *) (disk + indirect_b * EXT2_BLOCK_SIZE);
-                indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int)b_num;
+                indirect_block[block_index - SINGLE_INDIRECT] = (unsigned int) b_num;
             }
             unsigned char *block = disk + b_num * EXT2_BLOCK_SIZE;
-            // printf("%c\n", source_path[block_index * EXT2_BLOCK_SIZE]);
-            strncpy((char *)block, &source_path[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
+            strncpy((char *) block, &source_path[block_index * EXT2_BLOCK_SIZE], EXT2_BLOCK_SIZE);
             tar_inode->i_blocks += 2;
             block_index++;
         }
 
         printf("target_inode_num is :%d\n", target_inode_num);
-        if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'l') == -1) {
+        if (add_new_entry(disk, dir_inode, (unsigned int) target_inode_num, target_name, 'l') == -1) {
             printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);
         }
@@ -131,7 +125,7 @@ int main (int argc, char **argv) {
         target_inode_num = get_inode_num(disk, source_inode);
         source_inode->i_links_count++;
 
-        if (add_new_entry(disk, dir_inode, (unsigned int)target_inode_num, target_name, 'f') == -1) {
+        if (add_new_entry(disk, dir_inode, (unsigned int) target_inode_num, target_name, 'f') == -1) {
             printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);
         }
