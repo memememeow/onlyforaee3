@@ -88,7 +88,7 @@ int main (int argc, char **argv) {
 
         struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
 
-        write_into_block(disk, (char *)tar_inode, source_path, path_len);
+        write_into_block(disk, tar_inode, (char *)source_path, path_len);
 
         if (add_new_entry(disk, dir_inode, (unsigned int) target_inode_num, target_name, 'l') == -1) {
             printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);

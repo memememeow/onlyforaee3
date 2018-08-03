@@ -24,7 +24,6 @@ int main (int argc, char **argv) {
     unsigned char *disk = get_disk_loc(argv[1]);
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
-    unsigned char *b_bitmap = get_block_bitmap_loc(disk);
 
     // Check valid path on native file system
     // Open source file
