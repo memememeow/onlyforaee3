@@ -1,10 +1,5 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/mman.h>
 #include <errno.h>
 #include <memory.h>
 #include "ext2.h"
@@ -33,7 +28,6 @@ int main (int argc, char **argv) {
     //super block
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
-    unsigned char *i_bitmap = get_inode_bitmap_loc(disk);
 
     // Check valid target absolute_path
     // If not valid -> ENOENT
