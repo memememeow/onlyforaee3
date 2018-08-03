@@ -1,13 +1,12 @@
-Your name
-Your CDF ID
-The svn revision number for your last submission
+name: Yuhan Shao
+CDF ID: shaoyuha
 
-Yuhan Shao
-shaoyuha
+name: Huan Wang
+CDF ID: wanghu43
 
-Huan Wang
-wanghu43
+name: Muyuan Cao
+CDF ID: caomuyua
 
-Muyuan Cao
-caomuyua
+
+The svn revision number for your last submission:
 
