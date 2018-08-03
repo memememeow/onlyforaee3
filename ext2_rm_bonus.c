@@ -2,10 +2,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/mman.h>
 #include <time.h>
 #include <errno.h>
 #include "ext2.h"
@@ -62,9 +58,9 @@ void remove_dir(unsigned char *disk, char *path) {
 
     int block_num = path_inode->i_block[0];
 
-    // remove all the contents inside the dir, avoid . and ..
+    // Remove all the contents inside the dir, avoid . and ..
     for (int i = 0; i < SINGLE_INDIRECT; i++) {
-        if (path_inode->i_block[i]) { // has data in the block
+        if (path_inode->i_block[i]) { // Has data in the block
             clear_directory_content(disk, path_inode->i_block[i], path);
             block_num = path_inode->i_block[i];
         }
@@ -81,22 +77,22 @@ void remove_dir(unsigned char *disk, char *path) {
         }
     }
 
-    // update fields and zero the block bitmap and inode bitmap
+    // Update fields and zero the block bitmap and inode bitmap
     path_inode->i_blocks = 0;
     sb->s_free_blocks_count++;
     gd->bg_free_blocks_count++;
     zero_bitmap(block_bitmap, block_num);
     clear_inode_bitmap(disk, path_inode);
 
-    // get the parent directory
+    // Get the parent directory
     char *parent_path = get_dir_parent_path(path);
     struct ext2_inode *parent_dir = trace_path(parent_path, disk);
     parent_dir->i_links_count--;
-    // remove current directory's name but keep the inode
+    // Remove current directory's name but keep the inode
     remove_name(disk, path);
     gd->bg_used_dirs_count--;
 
-    // update the field of removed dir inode
+    // Update the field of removed dir inode
     path_inode->i_block[block_num] = 0;
     path_inode->i_dtime = (unsigned int) time(NULL);
     path_inode->i_size = 0;
@@ -109,7 +105,7 @@ void remove_dir(unsigned char *disk, char *path) {
 void clear_directory_content(unsigned char *disk, int block_num, char *path) {
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
     struct ext2_dir_entry_2 *pre_dir = NULL;
-    int curr_pos = 0; // used to keep track of the dir entry in each block
+    int curr_pos = 0; // Used to keep track of the dir entry in each block
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
         dir->name[dir->name_len] = '\0';
