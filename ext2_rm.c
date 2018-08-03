@@ -1,12 +1,5 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <time.h>
 #include <errno.h>
 #include "ext2.h"
 
@@ -27,16 +20,17 @@ int main(int argc, char **argv) {
 
     // The file/lin do not exist
     if (path_inode == NULL) {
-        printf("The path %s do not exist.\n", argv[2]);
+        printf("ext2_rm: The path %s do not exist.\n", argv[2]);
         return ENOENT;
     }
 
     // Is a directory
     if (path_inode->i_mode & EXT2_S_IFDIR) {
-        printf("The path %s is a directory.\n", argv[2]);
+        printf("ext2_rm: The path %s is a directory.\n", argv[2]);
         return EISDIR;
     }
 
+    // Remove the file or link in their parent directory
     remove_file_or_link(disk, argv[2]);
 
     return 0;
