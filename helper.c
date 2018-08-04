@@ -616,7 +616,7 @@ int init_inode(unsigned char *disk, int size, char type) {
 int write_into_block(unsigned char *disk, struct ext2_inode *tar_inode, char *buf, int buf_size) {
   // Write path into target file
   int block_index = 0;
-  int indirect_b;
+  int indirect_b = -1;
   unsigned char *b_bitmap = get_block_bitmap_loc(disk);
   while (block_index * EXT2_BLOCK_SIZE < buf_size) {
       int b_num;

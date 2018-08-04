@@ -113,7 +113,6 @@ int main (int argc, char **argv) {
     write_into_block(disk, tar_inode, buf, file_size);
 
     // Create a new entry in directory
-    printf("%d, %s\n", i_num, name_var);
     if (add_new_entry(disk, dir_inode, (unsigned int) i_num, name_var, 'f') == -1) {
         printf("ext2_cp: Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);
