@@ -7,7 +7,7 @@
 unsigned char *disk;
 
 
-/**
+/*
  * This program works like mkdir, creating the final directory on the
  * specified path on the disk.
  */
