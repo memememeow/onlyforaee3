@@ -42,8 +42,6 @@ int main (int argc, char **argv) {
     struct ext2_inode *dir_inode = NULL;
 
     // Check valid target absolute_path
-    // If not valid -> ENOENT
-    // Get the inode of the given path
     struct ext2_inode *target_inode = trace_path(argv[3], disk);
     char *parent_path = NULL;
     struct ext2_inode *parent_inode = NULL;
@@ -53,7 +51,7 @@ int main (int argc, char **argv) {
             name_var = get_file_name(argv[2]);
             dir_inode = target_inode;
 
-            // If such file exist -> EEXIST, no overwrite
+        // If such file exist -> EEXIST, no overwrite
         } else { // Source path is a file or a link
             printf("ext2_cp: %s :File exists.\n", argv[3]);
             return EEXIST;
@@ -62,20 +60,20 @@ int main (int argc, char **argv) {
         parent_path = get_dir_parent_path(argv[3]);
         parent_inode = trace_path(parent_path, disk);
 
-        if (parent_inode == NULL) {
+        if (parent_inode == NULL) { // Parent path does not exist
             printf("ext2_cp: %s :Invalid path.\n", argv[3]);
             return ENOENT;
+         // Path like /file_name/ should fail
         } else if ((argv[3])[strlen(argv[3]) - 1] == '/') {
             printf("ext2_cp: %s :Invalid path.\n", argv[3]);
             return ENOENT;
-        } else {   // File path with file DNE (yet) in a valid directory path.
+        } else { // File path with file DNE (yet) in a valid directory path.
             name_var = get_file_name(argv[3]);
             dir_inode = parent_inode;
         }
-
     }
 
-    if (strlen(name_var) > EXT2_NAME_LEN) {
+    if (strlen(name_var) > EXT2_NAME_LEN) { // target name too long
         printf("ext2_cp: Target file with name too long: %s\n", name_var);
         return ENOENT;
     }
@@ -95,16 +93,10 @@ int main (int argc, char **argv) {
 
     // Require a free inode
     int i_num = init_inode(disk, file_size, 'f');
-    if (i_num == -1) {
-        printf("ext2_ln: File system does not have enough free inodes.\n");
-        return ENOSPC;
-    }
     struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
 
     // Write into target file (data blocks
-    // Requires enough blocks
     char buf[file_size];
-
     if (read(fd, buf, file_size) < 0) {
         perror("Read");
         exit(1);

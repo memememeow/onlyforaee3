@@ -19,19 +19,13 @@ int main (int argc, char **argv) {
         exit(1);
     }
 
-    // Map disk image file into memory
+    // Map disk image file into memory， read superblock and group descriptor
     unsigned char *disk = get_disk_loc(argv[1]);
-
-    //blocks group descriptor
     struct ext2_group_desc *gd = get_group_descriptor_loc(disk);
-
-    //super block
     struct ext2_super_block *sb = get_superblock_loc(disk);
     struct ext2_inode *i_table = get_inode_table_loc(disk);
 
     // Check valid target absolute_path
-    // If not valid -> ENOENT
-    // Get the inode of the given path
     struct ext2_inode *target_inode = trace_path(argv[2], disk);
     if (target_inode != NULL) { // Target path exists
         printf("ext2_mkdir: %s :Directory exists.\n", argv[2]);
@@ -44,23 +38,18 @@ int main (int argc, char **argv) {
         return ENOENT;
     }
 
-    if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) {// target name too long
+    if (strlen(get_file_name(argv[2])) > EXT2_NAME_LEN) { // target name too long
         printf("ext2_mkdir: Target directory with name too long: %s\n", get_file_name(argv[2]));
         return ENOENT;
     }
 
-    // Check if there is enough inode (require 1)
+    // Check if there is enough inode (require 1) and free blocks
     if (sb->s_free_inodes_count <= 0 || sb->s_free_blocks_count <= 0) {
         printf("ext2_mkdir: File system does not have enough free inodes or blocks.\n");
         return ENOSPC;
     }
 
     int i_num = init_inode(disk, EXT2_BLOCK_SIZE, 'd');
-    if (i_num == -1) {
-        printf("ext2_ln: File system does not have enough free inodes.\n");
-        return ENOSPC;
-    }
-
     struct ext2_inode *tar_inode = &(i_table[i_num - 1]);
 
     // Create a new entry in directory
@@ -69,6 +58,7 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
+    // Add . and .. into block
     if (add_new_entry(disk, tar_inode, (unsigned int)i_num, ".", 'd') == -1) {
         printf("ext2_mkdir: Fail to add new directory entry in directory: %s\n", argv[3]);
         exit(0);

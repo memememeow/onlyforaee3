@@ -57,6 +57,7 @@ int main (int argc, char **argv) {
     if (dir_inode == NULL) {
         printf("ext2_ln: %s :Invalid path.\n", dir_path);
         return ENOENT;
+    // Path like /file_name/ should fail
     } else if ((argv[3])[strlen(argv[3]) - 1] == '/') {
         printf("ext2_cp: %s :Invalid path.\n", argv[3]);
         return ENOENT;
@@ -65,7 +66,7 @@ int main (int argc, char **argv) {
     int target_inode_num;
     const char *source_path = (const char *) argv[2];
     char *target_name = get_file_name(argv[3]);
-    if (strlen(target_name) > EXT2_NAME_LEN) {
+    if (strlen(target_name) > EXT2_NAME_LEN) { // target name too long
         printf("ext2_ln: Target file with name too long: %s\n", target_name);
         return ENOENT;
     }
@@ -85,7 +86,6 @@ int main (int argc, char **argv) {
             printf("ext2_ln: File system does not have enough free inodes.\n");
             return ENOSPC;
         }
-
         struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
 
         write_into_block(disk, tar_inode, (char *) source_path, path_len);
@@ -94,7 +94,6 @@ int main (int argc, char **argv) {
             printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);
         }
-
     } else {
         target_inode_num = get_inode_num(disk, source_inode);
         source_inode->i_links_count++;
