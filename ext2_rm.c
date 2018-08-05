@@ -5,6 +5,13 @@
 
 unsigned char *disk;
 
+/*
+ * This program takes two command line arguments. The first is the
+ * name of an ext2 formatted virtual disk, and the second is an
+ * absolute path to a file or link (not a directory) on that disk.
+ * The program should work like rm, removing the specified file from
+ * the disk.
+ */
 int main(int argc, char **argv) {
     // Check valid user input
     if (argc != 3) {

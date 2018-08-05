@@ -9,6 +9,13 @@ unsigned char *disk;
 void print_entries(unsigned char *, struct ext2_inode *, char *);
 void print_one_block_entries(struct ext2_dir_entry_2 *, char *);
 
+/*
+ * This program takes two command line arguments. The first is the name
+ * of an ext2 formatted virtual disk. The second is an absolute path on
+ * the ext2 formatted disk. The program should work like ls -1, printing
+ * each directory entry on a separate line. If the flag "a" is specified
+ * , program should also print the . and .. entries.
+ */
 int main(int argc, char **argv) {
     // Check valid user input
     if (argc != 3 && argc != 4) {

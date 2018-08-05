@@ -11,6 +11,13 @@ unsigned char *disk;
 void remove_dir(unsigned char *, char *);
 void clear_directory_content(unsigned char *, int, char *);
 
+/*
+ * In addition to the functions in ext2_rm, this programImplement
+ * an additional "r" flag which allows removing directories as well.
+ * If "r" is used with a regular file or link, then it should be
+ * ignored (the ext2_rm operation should be carried out as if the
+ * flag had not been entered).
+ */
 int main(int argc, char **argv) {
     // Check valid user input
     if (argc != 4) {
