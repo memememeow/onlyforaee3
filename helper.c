@@ -613,12 +613,15 @@ int init_inode(unsigned char *disk, int size, char type) {
   return inode_num;
 }
 
+/*
+ * Write buf into blocks of the target inode.
+ */
 int write_into_block(unsigned char *disk, struct ext2_inode *tar_inode, char *buf, int buf_size) {
   // Write path into target file
   int block_index = 0;
   int indirect_b = -1;
   unsigned char *b_bitmap = get_block_bitmap_loc(disk);
-  while (block_index * EXT2_BLOCK_SIZE < buf_size) {
+  while (block_index * EXT2_BLOCK_SIZE < buf_size) { // While not write all into blocks
       int b_num;
       if (block_index < SINGLE_INDIRECT) {
           b_num = get_free_block(disk, b_bitmap);
