@@ -12,7 +12,7 @@ void remove_dir(unsigned char *, char *);
 void clear_directory_content(unsigned char *, int, char *);
 
 /*
- * In addition to the functions in ext2_rm, this programImplement
+ * In addition to the functions in ext2_rm, this program implements
  * an additional "r" flag which allows removing directories as well.
  * If "r" is used with a regular file or link, then it should be
  * ignored (the ext2_rm operation should be carried out as if the
