@@ -10,3 +10,26 @@ CDF ID: caomuyua
 
 The svn revision number for your last submission:
 
+1. Describe problems you've encountered:
+Our group begins from implementing ext2_ls.c and we found that, ext2_ls.c
+is the "core" of the whole program, since the "trace_path" helper function
+is highly important and is used in all other programs (ext2_cp.c, ext2_ln.c,
+ext2_mkdir.c, ext2_rm.c and ext2_rm_bonus.c). Implementing "trace_path" helper
+function is one of the problem we encountered.
+
+2. Any special design decisions you've taken:
+The main functions in our group are short. Our group use many helper functions
+in order to bread down the hard problems into small pieces. Actually, the
+"bread down piece" design makes our test and debug much easier and faster.
+We just need to find the helper function which has problem and solve it, then
+the whole program can then functioning well.
+
+3. Describes what features you have completed:
+Our group completed the features described in ext2_ls.c, ext2_cp.c, ext2_ln.c,
+ext2_mkdir.c, ext2_rm.c and ext2_rm_bonus.c in the handout and implements our
+program as much as possible the same as ext2 file system and Linux system.
+
+4. Similarity among these 6 programs:
+ext2_ls.c: DISPLAY (read)
+ext2_cp.c, ext2_ln.c, ext2_mkdir.c: ADDING (write/modify)
+ext2_rm.c, ext2_rm_bonus.c: REMOVING (write/modify)
