@@ -46,9 +46,9 @@ int main (int argc, char **argv) {
     char *parent_path = NULL;
     struct ext2_inode *parent_inode = NULL;
     if (target_inode != NULL) { // Target path exists
+        name_var = get_file_name(argv[2]);
         // If source path is a directory
         if (target_inode->i_mode & EXT2_S_IFDIR) {
-            name_var = get_file_name(argv[2]);
             // test whether the directory exist the same file name
             struct ext2_inode *check = get_entry_with_name(disk, name_var, target_inode);
             if (check == NULL) { // no file with same name exist
@@ -60,7 +60,7 @@ int main (int argc, char **argv) {
 
         // If such file exist -> EEXIST, no overwrite
         } else { // Source path is a file or a link
-            printf("ext2_cp: %s :File exists.\n", argv[3]);
+            printf("ext2_cp: %s :File exists.\n", name_var);
             return EEXIST;
         }
     } else {
