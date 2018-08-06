@@ -114,6 +114,10 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
     struct ext2_dir_entry_2 *pre_dir = NULL;
     int curr_pos = 0; // Used to keep track of the dir entry in each block
 
+    // keep track . and ..
+    struct ext2_dir_entry_2 *current = dir;
+    struct ext2_dir_entry_2 *parent = (void*) current + current->rec_len;
+
     while (curr_pos < EXT2_BLOCK_SIZE) {
         dir->name[dir->name_len] = '\0';
         int rec_len = dir->rec_len;
@@ -135,4 +139,10 @@ void clear_directory_content(unsigned char *disk, int block_num, char *path) {
         pre_dir = dir;
         dir = (void*) dir + rec_len;
     }
+
+    // remove . and ..
+    parent->name_len = 0;
+    parent->rec_len = 0;
+    current->name_len = 0;
+    current->rec_len = EXT2_BLOCK_SIZE;
 }
