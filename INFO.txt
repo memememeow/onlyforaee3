@@ -28,8 +28,13 @@ the whole program can then functioning well.
 Our group completed the features described in ext2_ls.c, ext2_cp.c, ext2_ln.c,
 ext2_mkdir.c, ext2_rm.c and ext2_rm_bonus.c in the handout and implements our
 program as much as possible the same as ext2 file system and Linux system.
+In conclusion, we implement the operations on the directory:
+Search: - Find a particular file within directory
+Create file: - Add a new entry to the directory
+Delete file: - Remove an entry from the directory
+List directory: - Return file names and requested attributes of entries
 
 4. Similarity among these 6 programs:
-ext2_ls.c: DISPLAY (read)
-ext2_cp.c, ext2_ln.c, ext2_mkdir.c: ADDING (write/modify)
-ext2_rm.c, ext2_rm_bonus.c: REMOVING (write/modify)
+ext2_ls.c: LIST (read)
+ext2_cp.c, ext2_ln.c, ext2_mkdir.c: CREATE (write/modify)
+ext2_rm.c, ext2_rm_bonus.c: DELETE (write/modify)
