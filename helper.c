@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include "ext2.h"
+#include "helper.h"
 
 /*
  * Return the disk location.

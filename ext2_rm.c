@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "ext2.h"
+#include "helper.h"
 
 unsigned char *disk;
 
