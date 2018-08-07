@@ -22,4 +22,4 @@ ext2_rm_bonus: ext2_rm_bonus.o helper.o
 	gcc -Wall -g -c $<
 
 clean :
-	rm *.o
+	rm -f *.o
