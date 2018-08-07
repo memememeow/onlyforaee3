@@ -9,6 +9,7 @@ CDF ID: caomuyua
 
 
 The svn revision number for your last submission:
+Ignore if submitted using MarkUs
 
 1. Describe problems you've encountered:
 Our group begins from implementing ext2_ls.c and we found that, ext2_ls.c
