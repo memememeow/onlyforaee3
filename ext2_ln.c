@@ -107,7 +107,6 @@ int main (int argc, char **argv) {
                   strncpy(&file_path[k * EXT2_BLOCK_SIZE], (char *)block, num_to_read);
               }
           }
-          printf("%s\n", file_path);
           struct ext2_inode *file_inode = trace_path(file_path, disk);
           if (file_inode == NULL) {
               printf("ext2_ln: %s :Invalid path.\n", argv[2]);
