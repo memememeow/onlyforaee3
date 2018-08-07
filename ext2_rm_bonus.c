@@ -113,38 +113,30 @@ void remove_dir(unsigned char *disk, char *path) {
  */
 void clear_directory_content(unsigned char *disk, int block_num, char *path) {
     struct ext2_dir_entry_2 *dir = get_dir_entry(disk, block_num);
-    struct ext2_dir_entry_2 *pre_dir = NULL;
-    int curr_pos = 0; // Used to keep track of the dir entry in each block
-
-    // keep track . and ..
-    struct ext2_dir_entry_2 *current = dir;
-    struct ext2_dir_entry_2 *parent = (void*) current + current->rec_len;
+    struct ext2_dir_entry_2 *curr_dir = dir;
+    int curr_pos = 0;
 
     while (curr_pos < EXT2_BLOCK_SIZE) {
-        dir->name[dir->name_len] = '\0';
-        int rec_len = dir->rec_len;
+        curr_dir->name[curr_dir->name_len] = '\0';
 
-        if (strcmp(dir->name, ".") != 0
-            && strcmp(dir->name, "..") != 0) {
-            rec_len = dir->rec_len;
+        if (strcmp(curr_dir->name, ".") == 0) {
+            curr_dir->name_len = 0;
+            curr_dir->name[0] = '\0';
+
+        } else if (strcmp(curr_dir->name, "..") == 0) {
+            curr_dir->name_len = 0;
+            curr_dir->name[0] = '\0';
+            dir->rec_len += curr_dir->rec_len;
+        } else {
             if ((dir->file_type == EXT2_FT_REG_FILE)
                 || (dir->file_type == EXT2_FT_SYMLINK)) {
                 remove_file_or_link(disk, combine_name(path, dir));
             } else if (dir->file_type == EXT2_FT_DIR) {
                 remove_dir(disk, combine_name(path, dir));
             }
-            pre_dir->rec_len += dir->rec_len;
         }
 
-        /* Moving to the next directory */
-        curr_pos = curr_pos + rec_len;
-        pre_dir = dir;
-        dir = (void*) dir + rec_len;
+        curr_pos += curr_dir->rec_len;
+        curr_dir = (void*) curr_dir + curr_dir->rec_len;
     }
-
-    // remove . and ..
-    parent->name_len = 0;
-    parent->rec_len = 0;
-    current->name_len = 0;
-    current->rec_len = EXT2_BLOCK_SIZE;
 }
