@@ -20,8 +20,8 @@ function is one of the problem we encountered.
 
 2. Any special design decisions you've taken:
 The main functions in our group are short. Our group use many helper functions
-in order to bread down the hard problems into small pieces. Actually, the
-"bread down piece" design makes our test and debug much easier and faster.
+in order to break down the hard problems into small pieces. Actually, the
+"break down piece" design makes our test and debug much easier and faster.
 We just need to find the helper function which has problem and solve it, then
 the whole program can then functioning well.
 
