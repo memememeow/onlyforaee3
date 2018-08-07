@@ -64,7 +64,7 @@ int main (int argc, char **argv) {
     }
 
     int target_inode_num;
-    const char *source_path = (const char *) argv[2];
+    char *source_path = argv[2];
     char *target_name = get_file_name(argv[3]);
     if (strlen(target_name) > EXT2_NAME_LEN) { // target name too long
         printf("ext2_ln: Target file with name too long: %s\n", target_name);
@@ -88,13 +88,33 @@ int main (int argc, char **argv) {
         }
         struct ext2_inode *tar_inode = &(i_table[target_inode_num - 1]);
 
-        write_into_block(disk, tar_inode, (char *) source_path, path_len);
+        write_into_block(disk, tar_inode, source_path, path_len);
 
         if (add_new_entry(disk, dir_inode, (unsigned int) target_inode_num, target_name, 'l') == -1) {
             printf("ext2_ln: Fail to add new directory entry in directory: %s\n", dir_path);
             exit(0);
         }
-    } else {
+    } else { // Default: create a hardlink
+        if (source_inode->i_mode & EXT2_S_IFLNK) { // If create a hardlink to a softlink
+          char file_path[source_inode->i_size];
+          for (int k=0; k < 15; k++) {
+              if (source_inode->i_block[k]) {
+                  int num_to_read = EXT2_BLOCK_SIZE;
+                  if (source_inode->i_size < (k + 1) * EXT2_BLOCK_SIZE) { //last read
+                    num_to_read = source_inode->i_size - k * EXT2_BLOCK_SIZE;
+                  }
+                  char *block = (char *)disk + source_inode->i_block[k] * EXT2_BLOCK_SIZE;
+                  strncpy(&file_path[k * EXT2_BLOCK_SIZE], (char *)block, num_to_read);
+              }
+          }
+          printf("%s\n", file_path);
+          struct ext2_inode *file_inode = trace_path(file_path, disk);
+          if (file_inode == NULL) {
+              printf("ext2_ln: %s :Invalid path.\n", argv[2]);
+              return ENOENT;
+          }
+          source_inode = file_inode;
+        }
         target_inode_num = get_inode_num(disk, source_inode);
         source_inode->i_links_count++;
 
