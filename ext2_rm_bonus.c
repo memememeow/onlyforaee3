@@ -100,7 +100,9 @@ void remove_dir(unsigned char *disk, char *path) {
     gd->bg_used_dirs_count--;
 
     // Update the field of removed dir inode
-    path_inode->i_block[block_num] = 0;
+    for (int i = 0; i < 15; i++) {
+      path_inode->i_block[i] = 0;
+    }
     path_inode->i_dtime = (unsigned int) time(NULL);
     path_inode->i_size = 0;
     path_inode->i_blocks = 0;
