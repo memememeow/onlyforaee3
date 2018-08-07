@@ -98,7 +98,7 @@ int main (int argc, char **argv) {
     } else { // Default: create a hardlink
         if (source_inode->i_mode & EXT2_S_IFLNK) { // If create a hardlink to a softlink
           char file_path[source_inode->i_size];
-          for (int k=0; k < 15; k++) {
+          for (int k=0; k < 12; k++) {
               if (source_inode->i_block[k]) {
                   int num_to_read = EXT2_BLOCK_SIZE;
                   if (source_inode->i_size < (k + 1) * EXT2_BLOCK_SIZE) { //last read
